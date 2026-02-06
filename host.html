@@ -26,20 +26,31 @@
                 <div id="manageTab" class="tab-content active">
                     <!-- Current Question Section -->
                     <div id="currentQuestionDisplay">
-                        <div id="questionBox" class="question-box">
-                                    <div class="question-text-display">
-                                        <h1>BELUM ADA SOAL</h1>
-                                        <h1>SILAHKAN BUAT DULU</h1>
-                                        <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
-                                            <button class="btn" onclick="openCreateQuestionModal()">Tambah Soal</button>
-                                            <button class="btn" onclick="openDaftarSoalModal()">Daftar Soal</button>
-                                        </div>
-                                        <h3 id="displayQuestion"></h3>
-                                    </div>
-                            
-                            <div class="answer-boxes-display">
-                                <div id="answerBoxes" class="answer-grid"></div>
-                            </div>
+    <div id="questionBox" class="question-box">
+
+        <!-- Tampilan saat belum ada soal -->
+        <div class="question-text-display" id="emptyQuestionState" style="display: block;">
+            <h1>BELUM ADA SOAL</h1>
+            <h1>SILAHKAN BUAT DULU</h1>
+            <div class="question-actions">
+                <button class="btn" onclick="openCreateQuestionModal()">Tambah Soal</button>
+                <button class="btn" onclick="openDaftarSoalModal()">Daftar Soal</button>
+            </div>
+        </div>
+
+        <!-- Tampilan soal aktif (DITENGAHKAN) -->
+        <div class="question-display-center">
+            <h3 id="displayQuestion"></h3>
+        </div>
+
+        <!-- Jawaban -->
+        <div class="answer-boxes-display">
+            <div id="answerBoxes" class="answer-grid"></div>
+        </div>
+
+    </div>
+</div>
+
 
                             <div class="host-controls">
                                 <div style="margin-bottom: 20px;">

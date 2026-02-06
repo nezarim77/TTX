@@ -1316,3 +1316,23 @@ body {
     .modal { max-width: 95%; }
 }
 
+.question-box {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.question-display-center {
+    flex: 1;                         /* isi ruang tengah */
+    display: flex;
+    justify-content: center;         /* horizontal */
+    align-items: center;             /* vertical */
+    text-align: center;
+    padding: 16px;
+}
+
+#displayQuestion {
+    font-size: 1.6em;
+    font-weight: bold;
+    max-width: 80%;
+}

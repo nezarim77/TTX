@@ -113,6 +113,11 @@ function initHostPage() {
     showGamePage();
     displayExistingRoom(room);
     displayQuestionsList();
+    // If there is a selected current question, restore it so host doesn't lose progress on refresh
+    if (room.current_question_id) {
+        loadCurrentQuestion();
+        displayGameQuestionsList();
+    }
     populatePlayerDropdown();
     loadScores();
 }
@@ -802,6 +807,8 @@ function loadCurrentQuestion() {
     if (!room || !room.questions || !room.current_question_id) {
         const questionBox = document.getElementById('questionBox');
         if (questionBox) questionBox.style.display = 'none';
+        const emptyState = document.getElementById('emptyQuestionState');
+        if (emptyState) emptyState.style.display = 'block';
         return;
     }
     
@@ -810,13 +817,19 @@ function loadCurrentQuestion() {
     if (!currentQ) {
         const questionBox = document.getElementById('questionBox');
         if (questionBox) questionBox.style.display = 'none';
+        const emptyState = document.getElementById('emptyQuestionState');
+        if (emptyState) emptyState.style.display = 'block';
         return;
     }
-    
+
     // Display question
     const displayQuestion = document.getElementById('displayQuestion');
     if (displayQuestion) displayQuestion.textContent = currentQ.question;
     
+    // Hide empty state when question is loaded
+    const emptyState = document.getElementById('emptyQuestionState');
+    if (emptyState) emptyState.style.display = 'none';
+
     const questionBox = document.getElementById('questionBox');
     if (questionBox) questionBox.style.display = 'block';
     
@@ -1363,49 +1376,45 @@ setInterval(function() {
         const roomCode = localStorage.getItem('ttx_playerRoomCode');
         if (playerName && roomCode) {
             const room = getRoom(roomCode);
-            if (room) {
-                // Update other participants list
-                const otherParticipants = room.participants.filter(p => p !== playerName);
-                updateOtherParticipantsList(otherParticipants);
-                
-                // Check if game has started
-                if (room.game_status === 'playing') {
-                    const waitingRoom = document.getElementById('waitingRoomSection');
-                    const gamePlay = document.getElementById('gamePlaySection');
+            // If room has been deleted on host, inform peserta and clean up
+            if (!room) {
+                alert('Ruangan telah dihapus oleh host. Anda akan kembali ke beranda.');
+                localStorage.removeItem('ttx_playerName');
+                localStorage.removeItem('ttx_playerRoomCode');
+                goHome();
+                return;
+            }
 
-                    // If there is an active question, show gameplay; otherwise keep peserta in waiting
-                    if (room.current_question_id && room.questions && room.questions.length > 0) {
-                        if (waitingRoom && gamePlay) {
-                            waitingRoom.style.display = 'none';
-                            gamePlay.style.display = 'block';
-                            updateGameDisplay();
-                        }
-                    } else {
-                        // No question yet: show waiting message to peserta while host prepares soal
-                        if (waitingRoom && gamePlay) {
-                            waitingRoom.style.display = 'block';
-                            gamePlay.style.display = 'none';
-                        }
-                    }
-                }
-                
-                // Update game display if game is active
-                if (room.game_status === 'playing' && room.current_question_id !== undefined && 
-                    document.getElementById('gamePlaySection') && 
-                    document.getElementById('gamePlaySection').style.display !== 'none') {
-                    updateGameDisplay();
-                    
-                    // Check for wrong flash flag and trigger animation if present
-                    const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
-                    if (currentQ && currentQ.last_wrong_flash_time) {
-                        const lastWrongTime = currentQ.last_wrong_flash_time;
-                        const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
-                        
-                        // If we haven't processed this wrong flash yet, show it
-                        if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
-                            showPesertaWrongFlash();
-                            localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
-                        }
+            // Always refresh participant list and player's score
+            const otherParticipants = (room.participants || []).filter(p => p !== playerName);
+            updateOtherParticipantsList(otherParticipants);
+            document.getElementById('playerScoreDisplay').textContent = room.player_scores ? (room.player_scores[playerName] || 0) : 0;
+
+            const waitingRoom = document.getElementById('waitingRoomSection');
+            const gamePlay = document.getElementById('gamePlaySection');
+
+            // Show gameplay area (peserta always in gameplay now)
+            if (gamePlay) gamePlay.style.display = 'block';
+            if (waitingRoom) waitingRoom.style.display = 'none';
+
+            // Update question display and answer boxes
+            updateGameDisplay();
+
+            // If there is an active question, ensure answer grid is rendered
+            if (room.current_question_id && room.questions && room.questions.length > 0) {
+                const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+                if (currentQ) renderAnswerBoxes(currentQ, 'peserta');
+            }
+
+            // Trigger wrong-answer flash if flagged (once)
+            if (room.current_question_id && room.questions) {
+                const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+                if (currentQ && currentQ.last_wrong_flash_time) {
+                    const lastWrongTime = currentQ.last_wrong_flash_time;
+                    const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
+                    if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
+                        showPesertaWrongFlash();
+                        localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
                     }
                 }
             }
