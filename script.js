@@ -1364,32 +1364,27 @@ function loadScores() {
     
     // Use async approach
     getRoom(roomCode).then(room => {
-        if (!room || !room.player_scores || Object.keys(room.player_scores).length === 0) {
-            // No scores at all - show empty message
+        if (!room || !room.participants || room.participants.length === 0) {
+            // No participants at all - show empty message
             const scoresBoard = document.getElementById('scoresBoard');
             const scoresBoardPeserta = document.getElementById('scoresBoardPeserta');
             
-            if (scoresBoard) scoresBoard.innerHTML = '<p class="empty-message">Belum ada skor</p>';
-            if (scoresBoardPeserta) scoresBoardPeserta.innerHTML = '<p class="empty-message">Belum ada skor</p>';
+            if (scoresBoard) scoresBoard.innerHTML = '<p class="empty-message">Belum ada peserta</p>';
+            if (scoresBoardPeserta) scoresBoardPeserta.innerHTML = '<p class="empty-message">Belum ada peserta</p>';
             return;
         }
         
-        // Check if there are any non-zero scores
-        const scores = Object.entries(room.player_scores);
-        const hasNonZeroScores = scores.some(entry => entry[1] > 0);
+        // Create score entries for ALL participants (even those with 0 points)
+        const scores = room.participants.map(name => [
+            name,
+            room.player_scores && room.player_scores[name] ? room.player_scores[name] : 0
+        ]);
         
-        if (!hasNonZeroScores) {
-            // All scores are 0 - show empty message
-            const scoresBoard = document.getElementById('scoresBoard');
-            const scoresBoardPeserta = document.getElementById('scoresBoardPeserta');
-            
-            if (scoresBoard) scoresBoard.innerHTML = '<p class="empty-message">Belum ada skor</p>';
-            if (scoresBoardPeserta) scoresBoardPeserta.innerHTML = '<p class="empty-message">Belum ada skor</p>';
-            return;
-        }
-        
-        // Sort scores by points (descending)
-        scores.sort((a, b) => b[1] - a[1]);
+        // Sort scores by points (descending), then by name for ties
+        scores.sort((a, b) => {
+            if (b[1] !== a[1]) return b[1] - a[1];
+            return a[0].localeCompare(b[0]);
+        });
         
         let html = '';
         scores.forEach((entry, idx) => {
