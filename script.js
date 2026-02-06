@@ -1302,6 +1302,11 @@ function updateGameDisplay() {
     const room = getRoom(roomCode);
     if (!room) return;
     
+    const displayRoomCodePesertaGame = document.getElementById('displayRoomCodePesertaGame');
+    if (displayRoomCodePesertaGame) {
+        displayRoomCodePesertaGame.textContent = room.code;
+    }
+    
     document.getElementById('playerNameDisplay').textContent = playerName;
     document.getElementById('playerScoreDisplay').textContent = room.player_scores ? (room.player_scores[playerName] || 0) : 0;
     
