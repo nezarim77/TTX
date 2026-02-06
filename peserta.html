@@ -38,17 +38,13 @@
                     <div id="joinError" class="error-message" style="display: none;"></div>
                 </div>
 
-                <!-- Waiting Room Section (hidden initially) -->
+                <!-- Waiting Room Section (hidden - peserta langsung bermain tanpa waiting) -->
                 <div id="waitingRoomSection" class="waiting-room-section" style="display: none;">
                     <h2>Menunggu Permainan Dimulai</h2>
 
                     <div class="waiting-room-box">
                         <div class="waiting-info">
-                            <div class="info-item">
-                                <label>Nama Ruangan:</label>
-                                <p id="displayRoomNamePeserta"></p>
-                            </div>
-
+                            
                             <div class="info-item">
                                 <label>Nama Pemain:</label>
                                 <p id="displayPlayerName"></p>
@@ -83,6 +79,12 @@
                             <span class="info-label">Pemain: <span id="playerNameDisplay"></span></span>
                             <span class="info-label">Skor: <span id="playerScoreDisplay">0</span></span>
                         </div>
+                    </div>
+
+                    <!-- Waiting for question message (shown if no question yet) -->
+                    <div id="waitingQuestionMessage" class="waiting-indicator" style="display: none; padding: 40px 20px; text-align: center;">
+                        <div class="spinner"></div>
+                        <p>Menunggu soal dari host...</p>
                     </div>
 
                     <!-- Peserta tidak menampilkan teks soal (hanya audio) -->

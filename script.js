@@ -97,64 +97,34 @@ function removeParticipantFromRoom(roomCode, playerName) {
 
 // ==================== HOST PAGE LOGIC ==================== 
 function initHostPage() {
-    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    
-    if (currentHostRoom) {
-        const room = getRoom(currentHostRoom);
-        if (room) {
-            // Check if game is already playing
-            if (room.game_status === 'playing') {
-                showGamePage();
-                loadCurrentQuestion();
-                loadScores();
-                populatePlayerDropdown();
-            } else {
-                // Show setup page
-                document.getElementById('hostSetupPage').style.display = 'block';
-                document.getElementById('hostGamePage').style.display = 'none';
-                displayExistingRoom(room);
-                displayQuestionsList();
-            }
-        }
+    let currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+
+    // If host hasn't created a room yet, create one immediately and go to game page
+    if (!currentHostRoom) {
+        const autoName = 'Ruangan Host';
+        const roomCode = createNewRoom(autoName);
+        currentHostRoom = roomCode;
     }
+
+    const room = getRoom(currentHostRoom);
+    if (!room) return;
+
+    // Immediately show game page for host. Questions will be created in-game.
+    showGamePage();
+    displayExistingRoom(room);
+    displayQuestionsList();
+    populatePlayerDropdown();
+    loadScores();
 }
 
 function showGamePage() {
-    document.getElementById('hostSetupPage').style.display = 'none';
-    document.getElementById('hostGamePage').style.display = 'block';
+    const hostGame = document.getElementById('hostGamePage');
+    if (hostGame) hostGame.style.display = 'block';
 }
 
 function endGame() {
-    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    if (!currentHostRoom) return;
-    
-    if (!confirm('Yakin ingin mengakhiri permainan dan kembali ke setup?')) {
-        return;
-    }
-    
-    const room = getRoom(currentHostRoom);
-    if (room) {
-        // Reset game status
-        room.game_status = 'setup';
-        room.current_question_id = null;
-        
-        // Save room
-        const allRooms = getAllRooms();
-        allRooms[currentHostRoom] = room;
-        saveRooms(allRooms);
-    }
-    
-    // Switch back to setup page
-    document.getElementById('hostGamePage').style.display = 'none';
-    document.getElementById('hostSetupPage').style.display = 'block';
-    
-    // Reset the tab to first tab
-    switchHostTab('setup');
-    
-    // Refresh setup page
-    initHostPage();
-    
-    showSuccess('Permainan telah diakhiri dan dikembalikan ke setup.');
+    // Return to main page
+    goHome();
 }
 
 function switchGameTab(tabName) {
@@ -210,12 +180,10 @@ function createRoom() {
 }
 
 function displayExistingRoom(room) {
-    // Update status section
+    // We intentionally do not use a separate "status ruangan" UI here per new flow
     const roomStatus = document.getElementById('roomStatus');
     if (roomStatus) {
-        roomStatus.innerHTML = `<p>✓ Ruangan Aktif: ${room.name}</p>`;
-        roomStatus.classList.remove('inactive');
-        roomStatus.classList.add('active');
+        roomStatus.style.display = 'none';
     }
     
     // Show room info section
@@ -261,6 +229,21 @@ function displayExistingRoom(room) {
     
     updateParticipantsListInGame(room.participants);
     
+    // Show/hide no-questions notice and question box depending on questions
+    try {
+        const noQuestionsNotice = document.getElementById('noQuestionsNotice');
+        const questionBox = document.getElementById('questionBox');
+        if (room.questions && room.questions.length > 0) {
+            if (noQuestionsNotice) noQuestionsNotice.style.display = 'none';
+            if (questionBox) questionBox.style.display = 'block';
+        } else {
+            if (noQuestionsNotice) noQuestionsNotice.style.display = 'block';
+            if (questionBox) questionBox.style.display = 'none';
+        }
+    } catch (e) {
+        // ignore DOM errors
+    }
+
     // Update start game button visibility
     const startGameBtn = document.getElementById('startGameBtn');
     const gameStatusMessage = document.getElementById('gameStatusMessage');
@@ -345,6 +328,31 @@ function deleteRoom() {
     }
 }
 
+// Host leaves and ends the room: delete room and return to home
+function leaveRoomAsHost() {
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    if (!currentHostRoom) {
+        goHome();
+        return;
+    }
+
+    if (!confirm('Akhiri permainan ini dan keluarkan semua peserta?')) {
+        return;
+    }
+
+    const rooms = getAllRooms();
+    if (rooms && rooms[currentHostRoom]) {
+        delete rooms[currentHostRoom];
+        saveRooms(rooms);
+    }
+
+    // Remove host marker so revisiting /host will create a new room
+    localStorage.removeItem('ttx_currentHostRoom');
+
+    showSuccess('Permainan diakhiri. Kembali ke beranda.');
+    goHome();
+}
+
 // ==================== PESERTA PAGE LOGIC ==================== 
 function initPesertaPage() {
     const playerName = localStorage.getItem('ttx_playerName');
@@ -353,17 +361,11 @@ function initPesertaPage() {
     if (playerName && roomCode) {
         const room = getRoom(roomCode);
         if (room) {
+            // Hide join section and always show game play (peserta langsung main)
             document.querySelector('.join-room-section').style.display = 'none';
-            
-            if (room.game_status === 'playing' && room.current_question_id && room.questions && room.questions.length > 0) {
-                // Show game play
-                document.getElementById('waitingRoomSection').style.display = 'none';
-                document.getElementById('gamePlaySection').style.display = 'block';
-                updateGameDisplay();
-            } else {
-                // Show waiting room
-                displayWaitingRoom(playerName, room);
-            }
+            document.getElementById('waitingRoomSection').style.display = 'none';
+            document.getElementById('gamePlaySection').style.display = 'block';
+            updateGameDisplay();
         }
     }
 }
@@ -372,19 +374,6 @@ function joinRoom() {
     const playerNameInput = document.getElementById('playerName');
     const roomCodeInput = document.getElementById('roomCodeInput');
     const errorMessage = document.getElementById('joinError');
-    
-    const playerName = playerNameInput.value.trim();
-    const roomCode = roomCodeInput.value.trim().toUpperCase();
-    
-    if (!playerName) {
-        showErrorMessage(errorMessage, 'Silakan masukkan nama Anda');
-        return;
-    }
-    
-    if (!roomCode) {
-        showErrorMessage(errorMessage, 'Silakan masukkan kode ruangan');
-        return;
-    }
     
     const room = getRoom(roomCode);
     if (!room) {
@@ -410,10 +399,13 @@ function joinRoom() {
     roomCodeInput.value = '';
     errorMessage.style.display = 'none';
     
-    // Display waiting room
-    displayWaitingRoom(playerName, room);
+    // Hide join section and show game play directly (peserta langsung main)
+    document.querySelector('.join-room-section').style.display = 'none';
+    document.getElementById('waitingRoomSection').style.display = 'none';
+    document.getElementById('gamePlaySection').style.display = 'block';
+    updateGameDisplay();
     
-    showSuccess('Berhasil bergabung dengan ruangan!');
+    showSuccess('Berhasil bergabung! Silakan mulai bermain.');
 }
 
 function displayWaitingRoom(playerName, room) {
@@ -489,6 +481,16 @@ function leaveRoom() {
     showSuccess('Anda telah keluar dari ruangan');
 }
 
+function leaveRoomAsHost() {
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    
+    if (currentHostRoom && confirm('Apakah Anda yakin ingin meninggalkan ruangan ini?')) {
+        deleteRoom(currentHostRoom);
+        localStorage.removeItem('ttx_currentHostRoom');
+        window.location.href = '/';
+    }
+}
+
 // ==================== UTILITY FUNCTIONS ==================== 
 function showError(message) {
     alert(message);
@@ -562,15 +564,9 @@ function startGame() {
         return;
     }
     
-    // Check if there are questions
-    if (!room.questions || room.questions.length === 0) {
-        showError('Buat minimal satu soal terlebih dahulu di tab "Buat Soal"');
-        return;
-    }
-    
-    // Start the game
+    // Start the game (can start even if there are no questions yet)
     room.game_status = 'playing';
-    if (!room.current_question_id) {
+    if (!room.current_question_id && room.questions && room.questions.length > 0) {
         room.current_question_id = room.questions[0].question_id;
     }
     
@@ -789,7 +785,7 @@ function displayQuestionsList() {
             <div class="question-item-status ${q.status === 'revealed' ? 'status-revealed' : 'status-aktif'}">${q.status === 'revealed' ? 'TERBUKA' : 'AKTIF'}</div>
             <div class="question-item-actions">
                 <button class="btn btn-select" onclick="selectQuestion('${q.question_id}')">Pilih</button>
-                <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')" style="padding: 6px 12px; font-size: 12px;">Hapus</button>
+                <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')">Hapus</button>
             </div>
         </div>
     `).join('');
@@ -868,6 +864,8 @@ function selectQuestion(questionId) {
     saveRooms(allRooms);
 
     loadCurrentQuestion();
+    displayQuestionsList();
+    displayGameQuestionsList();
     showSuccess('Soal dipilih sebagai soal saat ini');
 }
 
@@ -1046,13 +1044,92 @@ function displayGameQuestionsList() {
             <div class="question-item-status ${q.status === 'revealed' ? 'status-revealed' : 'status-aktif'}">${q.status === 'revealed' ? 'TERBUKA' : 'AKTIF'}</div>
             <div class="question-item-actions">
                 <button class="btn btn-select" onclick="selectQuestion('${q.question_id}')">Pilih</button>
-                <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')" style="padding: 6px 12px; font-size: 12px;">Hapus</button>
+                <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')">Hapus</button>
             </div>
         </div>
     `).join('');
     
     const list = document.getElementById('gameQuestionsList');
     if (list) list.innerHTML = listHtml;
+}
+
+// Open inline tabs for create / daftar (no modals)
+function openCreateModal() {
+    switchGameTab('createQuestion');
+    const el = document.getElementById('gameQuestionText');
+    if (el) el.focus();
+}
+
+function openDaftarModal() {
+    switchGameTab('daftarSoal');
+}
+
+// Modal-based create question (preferred)
+function openCreateQuestionModal() {
+    const overlay = document.getElementById('modalOverlay');
+    const modal = document.getElementById('createQuestionModal');
+    if (!overlay || !modal) return;
+    overlay.style.display = 'block';
+    modal.style.display = 'block';
+    const input = document.getElementById('gameQuestionText');
+    if (input) input.focus();
+
+    // overlay click closes modal
+    overlay.onclick = closeCreateQuestionModal;
+
+    // ESC key closes modal
+    window._ttx_modal_keydown = function(e) {
+        if (e.key === 'Escape') closeCreateQuestionModal();
+    };
+    document.addEventListener('keydown', window._ttx_modal_keydown);
+}
+
+function closeCreateQuestionModal() {
+    const overlay = document.getElementById('modalOverlay');
+    const modal = document.getElementById('createQuestionModal');
+    if (!overlay || !modal) return;
+    overlay.style.display = 'none';
+    modal.style.display = 'none';
+
+    // cleanup handlers
+    if (overlay.onclick === closeCreateQuestionModal) overlay.onclick = null;
+    if (window._ttx_modal_keydown) {
+        document.removeEventListener('keydown', window._ttx_modal_keydown);
+        window._ttx_modal_keydown = null;
+    }
+}
+
+// Daftar Soal modal open/close
+function openDaftarSoalModal() {
+    const overlay = document.getElementById('modalOverlayDaftar');
+    const modal = document.getElementById('daftarSoalModal');
+    if (!overlay || !modal) return;
+    overlay.style.display = 'block';
+    modal.style.display = 'block';
+
+    overlay.onclick = closeDaftarSoalModal;
+
+    window._ttx_daftar_keydown = function(e) {
+        if (e.key === 'Escape') closeDaftarSoalModal();
+    };
+    document.addEventListener('keydown', window._ttx_daftar_keydown);
+
+    // Ensure the latest list is rendered when opened
+    displayGameQuestionsList();
+}
+
+function closeDaftarSoalModal() {
+    const overlay = document.getElementById('modalOverlayDaftar');
+    const modal = document.getElementById('daftarSoalModal');
+    if (!overlay || !modal) return;
+    overlay.style.display = 'none';
+    modal.style.display = 'none';
+
+    if (overlay.onclick === closeDaftarSoalModal) overlay.onclick = null;
+    if (window._ttx_daftar_keydown) {
+        document.removeEventListener('keydown', window._ttx_daftar_keydown);
+        window._ttx_daftar_keydown = null;
+    }
 }
 
 function awardPoints() {
@@ -1175,18 +1252,26 @@ function updateGameDisplay() {
     document.getElementById('playerNameDisplay').textContent = playerName;
     document.getElementById('playerScoreDisplay').textContent = room.player_scores ? (room.player_scores[playerName] || 0) : 0;
     
-    // Load current question
-    if (room.current_question_id) {
+    // Load current question if available
+    if (room.current_question_id && room.questions && room.questions.length > 0) {
         const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
         if (currentQ) {
             const soalEl = document.getElementById('soalText');
             if (soalEl) soalEl.textContent = currentQ.question; // only set if element exists
+            const waitingQuestionEl = document.getElementById('waitingQuestionMessage');
+            if (waitingQuestionEl) waitingQuestionEl.style.display = 'none';
             renderAnswerBoxes(currentQ, 'peserta');
             const playerAnswerEl = document.getElementById('playerAnswer');
             if (playerAnswerEl) playerAnswerEl.value = '';
             const answerResultEl = document.getElementById('answerResult');
             if (answerResultEl) answerResultEl.style.display = 'none';
         }
+    } else {
+        // No question yet: show waiting message
+        const waitingQuestionEl = document.getElementById('waitingQuestionMessage');
+        if (waitingQuestionEl) waitingQuestionEl.style.display = 'block';
+        const answerGridEl = document.getElementById('answerGrid');
+        if (answerGridEl) answerGridEl.innerHTML = '';
     }
 }
 
@@ -1287,11 +1372,20 @@ setInterval(function() {
                 if (room.game_status === 'playing') {
                     const waitingRoom = document.getElementById('waitingRoomSection');
                     const gamePlay = document.getElementById('gamePlaySection');
-                    
-                    if (waitingRoom && gamePlay) {
-                        waitingRoom.style.display = 'none';
-                        gamePlay.style.display = 'block';
-                        updateGameDisplay();
+
+                    // If there is an active question, show gameplay; otherwise keep peserta in waiting
+                    if (room.current_question_id && room.questions && room.questions.length > 0) {
+                        if (waitingRoom && gamePlay) {
+                            waitingRoom.style.display = 'none';
+                            gamePlay.style.display = 'block';
+                            updateGameDisplay();
+                        }
+                    } else {
+                        // No question yet: show waiting message to peserta while host prepares soal
+                        if (waitingRoom && gamePlay) {
+                            waitingRoom.style.display = 'block';
+                            gamePlay.style.display = 'none';
+                        }
                     }
                 }
                 

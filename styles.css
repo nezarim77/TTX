@@ -216,6 +216,16 @@ body {
     flex: 1;
 }
 
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.header-actions .btn {
+    padding: 8px 12px;
+    font-size: 0.9em;
+}
+
 /* ==================== HOST PAGE ==================== */
 .host-page,
 .peserta-page {
@@ -224,6 +234,12 @@ body {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
     overflow: hidden;
     border: 2px solid #2a2a2a;
+}
+
+#hostGamePage {
+    width: calc(100% - 40px);
+    max-width: none;
+    align-self: stretch;
 }
 
 .host-page::before,
@@ -769,6 +785,20 @@ body {
     color: #ff6600;
 }
 
+.question-item-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.question-item-actions .btn {
+    width: auto;          /* override width:100% */
+    margin-top: 0;        /* override margin-top */
+    padding: 8px 14px;
+    font-size: 0.9em;
+}
+
+
 /* ==================== QUESTION BOX ==================== */
 .question-box {
     background: #2a2a2a;
@@ -1229,3 +1259,60 @@ body {
         font-size: 1.3em;
     }
 }
+
+/* ==================== MODAL STYLES (create question modal) ==================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9998;
+}
+
+.modal {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: #1a1a1a;
+    border: 2px solid #2a2a2a;
+    padding: 0;
+    width: 90%;
+    max-width: 640px;
+    border-radius: 12px;
+    z-index: 9999;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #404040;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.1em;
+}
+
+.modal-body {
+    padding: 18px 20px 24px 20px;
+}
+
+.modal .btn-back {
+    padding: 6px 10px;
+    font-size: 0.95em;
+}
+
+@media (max-width: 480px) {
+    .modal { max-width: 95%; }
+}
+
