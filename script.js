@@ -387,6 +387,14 @@ function joinRoom() {
     const roomCodeInput = document.getElementById('roomCodeInput');
     const errorMessage = document.getElementById('joinError');
     
+    const playerName = playerNameInput.value.trim();
+    const roomCode = roomCodeInput.value.trim().toUpperCase();
+    
+    if (!playerName || !roomCode) {
+        showErrorMessage(errorMessage, 'Nama dan kode ruangan harus diisi!');
+        return;
+    }
+    
     const room = getRoom(roomCode);
     if (!room) {
         showErrorMessage(errorMessage, 'Kode ruangan tidak ditemukan!');
