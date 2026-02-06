@@ -1355,16 +1355,40 @@ function nextQuestion() {
 }
 
 function loadScores() {
+    // Determine which room we're loading scores for
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    const playerRoomCode = localStorage.getItem('ttx_playerRoomCode');
+    const roomCode = currentHostRoom || playerRoomCode;
+    
+    if (!roomCode) return;
     
     // Use async approach
-    getRoom(currentHostRoom).then(room => {
+    getRoom(roomCode).then(room => {
         if (!room || !room.player_scores || Object.keys(room.player_scores).length === 0) {
-            document.getElementById('scoresBoard').innerHTML = '<p class="empty-message">Belum ada skor</p>';
+            // No scores at all - show empty message
+            const scoresBoard = document.getElementById('scoresBoard');
+            const scoresBoardPeserta = document.getElementById('scoresBoardPeserta');
+            
+            if (scoresBoard) scoresBoard.innerHTML = '<p class="empty-message">Belum ada skor</p>';
+            if (scoresBoardPeserta) scoresBoardPeserta.innerHTML = '<p class="empty-message">Belum ada skor</p>';
             return;
         }
         
+        // Check if there are any non-zero scores
         const scores = Object.entries(room.player_scores);
+        const hasNonZeroScores = scores.some(entry => entry[1] > 0);
+        
+        if (!hasNonZeroScores) {
+            // All scores are 0 - show empty message
+            const scoresBoard = document.getElementById('scoresBoard');
+            const scoresBoardPeserta = document.getElementById('scoresBoardPeserta');
+            
+            if (scoresBoard) scoresBoard.innerHTML = '<p class="empty-message">Belum ada skor</p>';
+            if (scoresBoardPeserta) scoresBoardPeserta.innerHTML = '<p class="empty-message">Belum ada skor</p>';
+            return;
+        }
+        
+        // Sort scores by points (descending)
         scores.sort((a, b) => b[1] - a[1]);
         
         let html = '';
@@ -1380,7 +1404,12 @@ function loadScores() {
             `;
         });
         
-        document.getElementById('scoresBoard').innerHTML = html;
+        // Update both scoreboards if they exist
+        const scoresBoard = document.getElementById('scoresBoard');
+        const scoresBoardPeserta = document.getElementById('scoresBoardPeserta');
+        
+        if (scoresBoard) scoresBoard.innerHTML = html;
+        if (scoresBoardPeserta) scoresBoardPeserta.innerHTML = html;
     });
 }
 
@@ -1532,6 +1561,9 @@ async function pollPesertaPage() {
         const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
         if (currentQ) renderAnswerBoxes(currentQ, 'peserta');
     }
+
+    // Load and update scoreboard in real-time
+    loadScores();
 
     // Trigger wrong-answer flash if flagged (once)
     if (room.current_question_id && room.questions) {
