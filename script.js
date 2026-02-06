@@ -809,6 +809,10 @@ function loadCurrentQuestion() {
         if (questionBox) questionBox.style.display = 'none';
         const emptyState = document.getElementById('emptyQuestionState');
         if (emptyState) emptyState.style.display = 'block';
+        const nextState = document.getElementById('nextQuestionState');
+        if (nextState) nextState.style.display = 'none';
+        const hostControls = document.getElementById('hostControls');
+        if (hostControls) hostControls.style.display = 'none';
         return;
     }
     
@@ -819,6 +823,10 @@ function loadCurrentQuestion() {
         if (questionBox) questionBox.style.display = 'none';
         const emptyState = document.getElementById('emptyQuestionState');
         if (emptyState) emptyState.style.display = 'block';
+        const nextState = document.getElementById('nextQuestionState');
+        if (nextState) nextState.style.display = 'none';
+        const hostControls = document.getElementById('hostControls');
+        if (hostControls) hostControls.style.display = 'none';
         return;
     }
 
@@ -826,9 +834,13 @@ function loadCurrentQuestion() {
     const displayQuestion = document.getElementById('displayQuestion');
     if (displayQuestion) displayQuestion.textContent = currentQ.question;
     
-    // Hide empty state when question is loaded
+    // Hide empty state and show question + controls
     const emptyState = document.getElementById('emptyQuestionState');
     if (emptyState) emptyState.style.display = 'none';
+    const nextState = document.getElementById('nextQuestionState');
+    if (nextState) nextState.style.display = 'none';
+    const hostControls = document.getElementById('hostControls');
+    if (hostControls) hostControls.style.display = 'block';
 
     const questionBox = document.getElementById('questionBox');
     if (questionBox) questionBox.style.display = 'block';
@@ -880,6 +892,9 @@ function selectQuestion(questionId) {
     displayQuestionsList();
     displayGameQuestionsList();
     showSuccess('Soal dipilih sebagai soal saat ini');
+    
+    // Auto-close daftar soal modal after selection
+    closeDaftarSoalModal();
 }
 
 function deleteQuestion(questionId) {
@@ -912,6 +927,31 @@ function deleteQuestion(questionId) {
     }
     
     showSuccess('Soal berhasil dihapus');
+}
+
+function nextRound() {
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    if (!currentHostRoom) return;
+    const room = getRoom(currentHostRoom);
+    if (!room) return;
+    
+    // Clear current question
+    room.current_question_id = null;
+    const allRooms = getAllRooms();
+    allRooms[currentHostRoom] = room;
+    saveRooms(allRooms);
+    
+    // Hide question display and show nextQuestionState
+    const questionBox = document.getElementById('questionBox');
+    if (questionBox) questionBox.style.display = 'none';
+    const emptyState = document.getElementById('emptyQuestionState');
+    if (emptyState) emptyState.style.display = 'none';
+    const nextState = document.getElementById('nextQuestionState');
+    if (nextState) nextState.style.display = 'block';
+    const hostControls = document.getElementById('hostControls');
+    if (hostControls) hostControls.style.display = 'none';
+    
+    showSuccess('Ronde selesai. Silakan pilih soal selanjutnya atau buat soal baru.');
 }
 
 function renderAnswerBoxes(question, mode) {

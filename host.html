@@ -38,6 +38,16 @@
             </div>
         </div>
 
+        <!-- Tampilan setelah ronde selesai - memilih soal selanjutnya -->
+        <div class="question-text-display" id="nextQuestionState" style="display: none;">
+            <h1>PILIH SOAL SELANJUTNYA</h1>
+            <h1>ATAU TAMBAHKAN SOAL BARU</h1>
+            <div class="question-actions">
+                <button class="btn" onclick="openCreateQuestionModal()">Tambah Soal</button>
+                <button class="btn" onclick="openDaftarSoalModal()">Daftar Soal</button>
+            </div>
+        </div>
+
         <!-- Tampilan soal aktif (DITENGAHKAN) -->
         <div class="question-display-center">
             <h3 id="displayQuestion"></h3>
@@ -52,7 +62,7 @@
 </div>
 
 
-                            <div class="host-controls">
+                            <div class="host-controls" id="hostControls" style="display:none;">
                                 <div style="margin-bottom: 20px;">
                                     <label for="awardPointsPlayer">Berikan Poin Ke:</label>
                                     <select id="awardPointsPlayer">
@@ -65,7 +75,7 @@
                                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                     <button class="btn btn-reveal" onclick="revealAnswer()">Buka Jawaban</button>
                                     <button class="btn btn-wrong" onclick="markAnswerWrong()">Jawaban Salah</button>
-                                    <!-- <button class="btn btn-next" onclick="nextQuestion()">Selanjutnya</button> -->
+                                    <button class="btn btn-next" onclick="nextRound()">Ronde Selanjutnya</button>
                                 </div>
 
                                 <div id="gamePlayError" class="error-message" style="display: none; margin-top: 15px;"></div>
