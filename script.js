@@ -11,8 +11,105 @@ function goToPeserta() {
     window.location.href = '/peserta';
 }
 
-// ==================== LOCAL STORAGE MANAGEMENT ==================== 
-// Simulate a database using localStorage
+// ==================== LOCAL STORAGE & API MANAGEMENT ==================== 
+// Backend API base URL
+const API_BASE = 'http://localhost:5000/api';
+
+// ==================== API WRAPPER FUNCTIONS ====================
+
+async function createNewRoom(roomName) {
+    try {
+        const response = await fetch(`${API_BASE}/rooms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: roomName })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Gagal membuat ruangan');
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+            const roomCode = data.data.code;
+            localStorage.setItem('ttx_currentHostRoom', roomCode);
+            return roomCode;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error creating room:', error);
+        showErrorMessage(document.getElementById('gamePlayError'), 'Gagal membuat ruangan: ' + error.message);
+        return null;
+    }
+}
+
+async function getRoom(roomCode) {
+    try {
+        const response = await fetch(`${API_BASE}/rooms/${roomCode.toUpperCase()}`);
+        
+        if (!response.ok) {
+            return null;
+        }
+        
+        const data = await response.json();
+        return data.success ? data.data : null;
+    } catch (error) {
+        console.error('Error getting room:', error);
+        return null;
+    }
+}
+
+async function deleteRoom(roomCode) {
+    try {
+        const response = await fetch(`${API_BASE}/rooms/${roomCode.toUpperCase()}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            localStorage.removeItem('ttx_currentHostRoom');
+        }
+    } catch (error) {
+        console.error('Error deleting room:', error);
+    }
+}
+
+async function addParticipantToRoom(roomCode, playerName) {
+    try {
+        const response = await fetch(`${API_BASE}/rooms/${roomCode.toUpperCase()}/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ player_name: playerName })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Gagal bergabung');
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error adding participant:', error);
+        throw error;
+    }
+}
+
+async function removeParticipantFromRoom(roomCode, playerName) {
+    try {
+        const response = await fetch(`${API_BASE}/rooms/${roomCode.toUpperCase()}/leave`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ player_name: playerName })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Gagal keluar dari ruangan');
+        }
+    } catch (error) {
+        console.error('Error removing participant:', error);
+    }
+}
+
+// ==================== OLD LOCAL STORAGE FUNCTIONS (kept for reference) ====================
 
 function generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -24,89 +121,28 @@ function generateRoomCode() {
 }
 
 function getAllRooms() {
+    // This is now deprecated - we use API instead
     const rooms = localStorage.getItem('ttx_rooms');
     return rooms ? JSON.parse(rooms) : {};
 }
 
 function saveRooms(rooms) {
+    // This is now deprecated - backend saves automatically
     localStorage.setItem('ttx_rooms', JSON.stringify(rooms));
 }
 
-function createNewRoom(roomName) {
-    const rooms = getAllRooms();
-    const roomCode = generateRoomCode();
-    
-    // Ensure unique room code
-    while (rooms[roomCode]) {
-        roomCode = generateRoomCode();
-    }
-    
-    rooms[roomCode] = {
-        code: roomCode,
-        name: roomName,
-        createdAt: new Date().toISOString(),
-        participants: [],
-        status: 'waiting',
-        game_status: 'setup',
-        questions: [],
-        current_question_id: null,
-        player_scores: {}
-    };
-    
-    saveRooms(rooms);
-    localStorage.setItem('ttx_currentHostRoom', roomCode);
-    
-    return roomCode;
-}
-
-function getRoom(roomCode) {
-    const rooms = getAllRooms();
-    return rooms[roomCode] || null;
-}
-
-function deleteRoom(roomCode) {
-    const rooms = getAllRooms();
-    delete rooms[roomCode];
-    saveRooms(rooms);
-    localStorage.removeItem('ttx_currentHostRoom');
-}
-
-function addParticipantToRoom(roomCode, playerName) {
-    const rooms = getAllRooms();
-    const room = rooms[roomCode];
-    
-    if (room) {
-        if (!room.participants.includes(playerName)) {
-            room.participants.push(playerName);
-            saveRooms(rooms);
-        }
-        return true;
-    }
-    return false;
-}
-
-function removeParticipantFromRoom(roomCode, playerName) {
-    const rooms = getAllRooms();
-    const room = rooms[roomCode];
-    
-    if (room) {
-        room.participants = room.participants.filter(p => p !== playerName);
-        saveRooms(rooms);
-    }
-}
-
 // ==================== HOST PAGE LOGIC ==================== 
-function initHostPage() {
+async function initHostPage() {
     let currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
 
     // If host hasn't created a room yet, create one immediately and go to game page
     if (!currentHostRoom) {
         const autoName = 'Ruangan Host';
-        const roomCode = createNewRoom(autoName);
+        const roomCode = await createNewRoom(autoName);
         currentHostRoom = roomCode;
     }
 
-    const room = getRoom(currentHostRoom);
+    const room = await getRoom(currentHostRoom);
     if (!room) return;
 
     // Immediately show game page for host. Questions will be created in-game.
@@ -359,12 +395,12 @@ function leaveRoomAsHost() {
 }
 
 // ==================== PESERTA PAGE LOGIC ==================== 
-function initPesertaPage() {
+async function initPesertaPage() {
     const playerName = localStorage.getItem('ttx_playerName');
     const roomCode = localStorage.getItem('ttx_playerRoomCode');
     
     if (playerName && roomCode) {
-        const room = getRoom(roomCode);
+        const room = await getRoom(roomCode);
         if (room) {
             // Hide join section and always show game play (peserta langsung main)
             document.querySelector('.join-room-section').style.display = 'none';
@@ -382,7 +418,7 @@ function initPesertaPage() {
     }
 }
 
-function joinRoom() {
+async function joinRoom() {
     const playerNameInput = document.getElementById('playerName');
     const roomCodeInput = document.getElementById('roomCodeInput');
     const errorMessage = document.getElementById('joinError');
@@ -395,44 +431,43 @@ function joinRoom() {
         return;
     }
     
-    const room = getRoom(roomCode);
-    if (!room) {
-        showErrorMessage(errorMessage, 'Kode ruangan tidak ditemukan!');
-        return;
+    try {
+        // First check if room exists
+        const room = await getRoom(roomCode);
+        if (!room) {
+            showErrorMessage(errorMessage, 'Kode ruangan tidak ditemukan!');
+            return;
+        }
+        
+        // Try to join the room (API will check for duplicate names)
+        await addParticipantToRoom(roomCode, playerName);
+        
+        // Save to localStorage
+        localStorage.setItem('ttx_playerName', playerName);
+        localStorage.setItem('ttx_playerRoomCode', roomCode);
+        
+        // Clear join form
+        playerNameInput.value = '';
+        roomCodeInput.value = '';
+        errorMessage.style.display = 'none';
+        
+        // Hide join section and show game play directly (peserta langsung main)
+        document.querySelector('.join-room-section').style.display = 'none';
+        document.getElementById('waitingRoomSection').style.display = 'none';
+        document.getElementById('gamePlaySection').style.display = 'block';
+        
+        // Show header elements for game play
+        const roomCodeDisplay = document.getElementById('displayRoomCodePesertaGame');
+        if (roomCodeDisplay) roomCodeDisplay.style.display = 'block';
+        const headerActions = document.getElementById('pesertaHeaderActions');
+        if (headerActions) headerActions.style.display = 'flex';
+        
+        updateGameDisplay();
+        
+        showSuccess('Berhasil bergabung! Silakan mulai bermain.');
+    } catch (error) {
+        showErrorMessage(errorMessage, error.message);
     }
-    
-    // Check if player name already exists in this room
-    if (room.participants.includes(playerName)) {
-        showErrorMessage(errorMessage, 'Nama ini sudah digunakan di ruangan ini');
-        return;
-    }
-    
-    // Add participant to room
-    addParticipantToRoom(roomCode, playerName);
-    
-    // Save to localStorage
-    localStorage.setItem('ttx_playerName', playerName);
-    localStorage.setItem('ttx_playerRoomCode', roomCode);
-    
-    // Clear join form
-    playerNameInput.value = '';
-    roomCodeInput.value = '';
-    errorMessage.style.display = 'none';
-    
-    // Hide join section and show game play directly (peserta langsung main)
-    document.querySelector('.join-room-section').style.display = 'none';
-    document.getElementById('waitingRoomSection').style.display = 'none';
-    document.getElementById('gamePlaySection').style.display = 'block';
-    
-    // Show header elements for game play
-    const roomCodeDisplay = document.getElementById('displayRoomCodePesertaGame');
-    if (roomCodeDisplay) roomCodeDisplay.style.display = 'block';
-    const headerActions = document.getElementById('pesertaHeaderActions');
-    if (headerActions) headerActions.style.display = 'flex';
-    
-    updateGameDisplay();
-    
-    showSuccess('Berhasil bergabung! Silakan mulai bermain.');
 }
 
 function displayWaitingRoom(playerName, room) {
@@ -837,72 +872,74 @@ function loadCurrentQuestion() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
     if (!currentHostRoom) return;
     
-    const room = getRoom(currentHostRoom);
-    if (!room || !room.questions || !room.current_question_id) {
-        const questionBox = document.getElementById('questionBox');
-        if (questionBox) questionBox.style.display = 'none';
-        const emptyState = document.getElementById('emptyQuestionState');
-        if (emptyState) emptyState.style.display = 'block';
-        const nextState = document.getElementById('nextQuestionState');
-        if (nextState) nextState.style.display = 'none';
-        const hostControls = document.getElementById('hostControls');
-        if (hostControls) hostControls.style.display = 'none';
-        return;
-    }
-    
-    // Find current question
-    const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
-    if (!currentQ) {
-        const questionBox = document.getElementById('questionBox');
-        if (questionBox) questionBox.style.display = 'none';
-        const emptyState = document.getElementById('emptyQuestionState');
-        if (emptyState) emptyState.style.display = 'block';
-        const nextState = document.getElementById('nextQuestionState');
-        if (nextState) nextState.style.display = 'none';
-        const hostControls = document.getElementById('hostControls');
-        if (hostControls) hostControls.style.display = 'none';
-        return;
-    }
-
-    // Display question
-    const displayQuestion = document.getElementById('displayQuestion');
-    if (displayQuestion) displayQuestion.textContent = currentQ.question;
-    
-    // Hide empty state and show question + controls
-    const emptyState = document.getElementById('emptyQuestionState');
-    if (emptyState) emptyState.style.display = 'none';
-    const nextState = document.getElementById('nextQuestionState');
-    if (nextState) nextState.style.display = 'none';
-    const hostControls = document.getElementById('hostControls');
-    if (hostControls) hostControls.style.display = 'block';
-
-    const questionBox = document.getElementById('questionBox');
-    if (questionBox) questionBox.style.display = 'block';
-    
-    // Render answer boxes
-    renderAnswerBoxes(currentQ, 'host');
-    
-    // Update participants dropdown for awarding points
-    if (room.participants) {
-        const selectElement = document.getElementById('awardPointsPlayer');
-        if (selectElement) {
-            selectElement.innerHTML = '<option value="">-- Pilih Peserta --</option>';
-            room.participants.forEach(p => {
-                selectElement.innerHTML += `<option value="${p}">${p}</option>`;
-            });
+    // Use async approach
+    getRoom(currentHostRoom).then(room => {
+        if (!room || !room.questions || !room.current_question_id) {
+            const questionBox = document.getElementById('questionBox');
+            if (questionBox) questionBox.style.display = 'none';
+            const emptyState = document.getElementById('emptyQuestionState');
+            if (emptyState) emptyState.style.display = 'block';
+            const nextState = document.getElementById('nextQuestionState');
+            if (nextState) nextState.style.display = 'none';
+            const hostControls = document.getElementById('hostControls');
+            if (hostControls) hostControls.style.display = 'none';
+            return;
         }
-    }
-    
-    // Clear input fields
-    const guessInput = document.getElementById('guessInput');
-    const awardPointsInput = document.getElementById('awardPointsInput');
-    const answerCheckResult = document.getElementById('answerCheckResult');
-    const gamePlayError = document.getElementById('gamePlayError');
-    
-    if (guessInput) guessInput.value = '';
-    if (awardPointsInput) awardPointsInput.value = '';
-    if (answerCheckResult) answerCheckResult.style.display = 'none';
-    if (gamePlayError) gamePlayError.style.display = 'none';
+        
+        // Find current question
+        const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+        if (!currentQ) {
+            const questionBox = document.getElementById('questionBox');
+            if (questionBox) questionBox.style.display = 'none';
+            const emptyState = document.getElementById('emptyQuestionState');
+            if (emptyState) emptyState.style.display = 'block';
+            const nextState = document.getElementById('nextQuestionState');
+            if (nextState) nextState.style.display = 'none';
+            const hostControls = document.getElementById('hostControls');
+            if (hostControls) hostControls.style.display = 'none';
+            return;
+        }
+
+        // Display question
+        const displayQuestion = document.getElementById('displayQuestion');
+        if (displayQuestion) displayQuestion.textContent = currentQ.question;
+        
+        // Hide empty state and show question + controls
+        const emptyState = document.getElementById('emptyQuestionState');
+        if (emptyState) emptyState.style.display = 'none';
+        const nextState = document.getElementById('nextQuestionState');
+        if (nextState) nextState.style.display = 'none';
+        const hostControls = document.getElementById('hostControls');
+        if (hostControls) hostControls.style.display = 'block';
+
+        const questionBox = document.getElementById('questionBox');
+        if (questionBox) questionBox.style.display = 'block';
+        
+        // Render answer boxes
+        renderAnswerBoxes(currentQ, 'host');
+        
+        // Update participants dropdown for awarding points
+        if (room.participants) {
+            const selectElement = document.getElementById('awardPointsPlayer');
+            if (selectElement) {
+                selectElement.innerHTML = '<option value="">-- Pilih Peserta --</option>';
+                room.participants.forEach(p => {
+                    selectElement.innerHTML += `<option value="${p}">${p}</option>`;
+                });
+            }
+        }
+        
+        // Clear input fields
+        const guessInput = document.getElementById('guessInput');
+        const awardPointsInput = document.getElementById('awardPointsInput');
+        const answerCheckResult = document.getElementById('answerCheckResult');
+        const gamePlayError = document.getElementById('gamePlayError');
+        
+        if (guessInput) guessInput.value = '';
+        if (awardPointsInput) awardPointsInput.value = '';
+        if (answerCheckResult) answerCheckResult.style.display = 'none';
+        if (gamePlayError) gamePlayError.style.display = 'none';
+    });
 }
 
 function selectQuestion(questionId) {
@@ -1327,13 +1364,13 @@ function loadScores() {
 }
 
 // ==================== PESERTA GAME FUNCTIONS ====================
-function updateGameDisplay() {
+async function updateGameDisplay() {
     const playerName = localStorage.getItem('ttx_playerName');
     const roomCode = localStorage.getItem('ttx_playerRoomCode');
     
     if (!playerName || !roomCode) return;
     
-    const room = getRoom(roomCode);
+    const room = await getRoom(roomCode);
     if (!room) return;
     
     const displayRoomCodePesertaGame = document.getElementById('displayRoomCodePesertaGame');
@@ -1403,6 +1440,92 @@ function submitPesertaAnswer() {
     document.getElementById('playerAnswer').value = '';
 }
 
+// ==================== POLLING FUNCTIONS ==================== 
+
+async function pollHostPage() {
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    if (!currentHostRoom) return;
+    
+    const room = await getRoom(currentHostRoom);
+    if (!room) return;
+    
+    // Update participant count and list in Setup tab
+    const participantCount = document.getElementById('participantCount');
+    if (participantCount) {
+        const count = room.participants.length;
+        participantCount.textContent = count + (count === 1 ? ' peserta terhubung' : ' peserta terhubung');
+    }
+    updateParticipantsList(room.participants);
+    
+    // Update participant count and list in Game tab
+    const participantCountInGame = document.getElementById('participantCountInGame');
+    if (participantCountInGame) {
+        const count = room.participants.length;
+        participantCountInGame.textContent = count + (count === 1 ? ' peserta' : ' peserta');
+    }
+    updateParticipantsListInGame(room.participants);
+    
+    // Refresh game display if on Bermain tab
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab && activeTab.textContent.includes('Bermain')) {
+        if (room.current_question_id !== undefined) {
+            loadCurrentQuestion();
+            loadScores();
+        }
+    }
+}
+
+async function pollPesertaPage() {
+    const playerName = localStorage.getItem('ttx_playerName');
+    const roomCode = localStorage.getItem('ttx_playerRoomCode');
+    if (!playerName || !roomCode) return;
+    
+    const room = await getRoom(roomCode);
+    
+    // If room has been deleted on host, inform peserta and clean up
+    if (!room) {
+        alert('Ruangan telah dihapus oleh host. Anda akan kembali ke beranda.');
+        localStorage.removeItem('ttx_playerName');
+        localStorage.removeItem('ttx_playerRoomCode');
+        goHome();
+        return;
+    }
+
+    // Always refresh participant list and player's score
+    const otherParticipants = (room.participants || []).filter(p => p !== playerName);
+    updateOtherParticipantsList(otherParticipants);
+    document.getElementById('playerScoreDisplay').textContent = room.player_scores ? (room.player_scores[playerName] || 0) : 0;
+
+    const waitingRoom = document.getElementById('waitingRoomSection');
+    const gamePlay = document.getElementById('gamePlaySection');
+
+    // Show gameplay area (peserta always in gameplay now)
+    if (gamePlay) gamePlay.style.display = 'block';
+    if (waitingRoom) waitingRoom.style.display = 'none';
+
+    // Update question display and answer boxes
+    await updateGameDisplay();
+
+    // If there is an active question, ensure answer grid is rendered
+    if (room.current_question_id && room.questions && room.questions.length > 0) {
+        const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+        if (currentQ) renderAnswerBoxes(currentQ, 'peserta');
+    }
+
+    // Trigger wrong-answer flash if flagged (once)
+    if (room.current_question_id && room.questions) {
+        const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+        if (currentQ && currentQ.last_wrong_flash_time) {
+            const lastWrongTime = currentQ.last_wrong_flash_time;
+            const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
+            if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
+                showPesertaWrongFlash();
+                localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
+            }
+        }
+    }
+}
+
 // ==================== PAGE INITIALIZATION ==================== 
 document.addEventListener('DOMContentLoaded', function() {
     // Determine which page we're on and initialize accordingly
@@ -1420,84 +1543,9 @@ setInterval(function() {
     const pathname = window.location.pathname;
     
     if (pathname === '/host') {
-        const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-        if (currentHostRoom) {
-            const room = getRoom(currentHostRoom);
-            if (room) {
-                // Update participant count and list in Setup tab
-                const participantCount = document.getElementById('participantCount');
-                if (participantCount) {
-                    const count = room.participants.length;
-                    participantCount.textContent = count + (count === 1 ? ' peserta terhubung' : ' peserta terhubung');
-                }
-                updateParticipantsList(room.participants);
-                
-                // Update participant count and list in Game tab
-                const participantCountInGame = document.getElementById('participantCountInGame');
-                if (participantCountInGame) {
-                    const count = room.participants.length;
-                    participantCountInGame.textContent = count + (count === 1 ? ' peserta' : ' peserta');
-                }
-                updateParticipantsListInGame(room.participants);
-                
-                // Refresh game display if on Bermain tab
-                const activeTab = document.querySelector('.tab-btn.active');
-                if (activeTab && activeTab.textContent.includes('Bermain')) {
-                    if (room.current_question_id !== undefined) {
-                        loadCurrentQuestion();
-                        loadScores();
-                    }
-                }
-            }
-        }
+        pollHostPage();
     } else if (pathname === '/peserta') {
-        const playerName = localStorage.getItem('ttx_playerName');
-        const roomCode = localStorage.getItem('ttx_playerRoomCode');
-        if (playerName && roomCode) {
-            const room = getRoom(roomCode);
-            // If room has been deleted on host, inform peserta and clean up
-            if (!room) {
-                alert('Ruangan telah dihapus oleh host. Anda akan kembali ke beranda.');
-                localStorage.removeItem('ttx_playerName');
-                localStorage.removeItem('ttx_playerRoomCode');
-                goHome();
-                return;
-            }
-
-            // Always refresh participant list and player's score
-            const otherParticipants = (room.participants || []).filter(p => p !== playerName);
-            updateOtherParticipantsList(otherParticipants);
-            document.getElementById('playerScoreDisplay').textContent = room.player_scores ? (room.player_scores[playerName] || 0) : 0;
-
-            const waitingRoom = document.getElementById('waitingRoomSection');
-            const gamePlay = document.getElementById('gamePlaySection');
-
-            // Show gameplay area (peserta always in gameplay now)
-            if (gamePlay) gamePlay.style.display = 'block';
-            if (waitingRoom) waitingRoom.style.display = 'none';
-
-            // Update question display and answer boxes
-            updateGameDisplay();
-
-            // If there is an active question, ensure answer grid is rendered
-            if (room.current_question_id && room.questions && room.questions.length > 0) {
-                const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
-                if (currentQ) renderAnswerBoxes(currentQ, 'peserta');
-            }
-
-            // Trigger wrong-answer flash if flagged (once)
-            if (room.current_question_id && room.questions) {
-                const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
-                if (currentQ && currentQ.last_wrong_flash_time) {
-                    const lastWrongTime = currentQ.last_wrong_flash_time;
-                    const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
-                    if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
-                        showPesertaWrongFlash();
-                        localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
-                    }
-                }
-            }
-        }
+        pollPesertaPage();
     }
 }, 2000); // Refresh every 2 seconds
 
