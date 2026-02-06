@@ -1260,7 +1260,7 @@ function closeDaftarSoalModal() {
     }
 }
 
-function awardPoints() {
+async function awardPoints() {
     const playerName = document.getElementById('awardPointsPlayer').value;
     const points = parseInt(document.getElementById('awardPointsInput').value);
     const errorDiv = document.getElementById('gamePlayError');
@@ -1278,24 +1278,35 @@ function awardPoints() {
     }
     
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = getRoom(currentHostRoom);
     
-    if (!room.player_scores) room.player_scores = {};
-    if (!room.player_scores[playerName]) room.player_scores[playerName] = 0;
-    
-    room.player_scores[playerName] += points;
-    
-    const allRooms = getAllRooms();
-    allRooms[currentHostRoom] = room;
-    saveRooms(allRooms);
-    
-    document.getElementById('awardPointsInput').value = '';
-    document.getElementById('awardPointsPlayer').value = '';
-    errorDiv.style.display = 'none';
-    
-    showSuccess(`${points} poin berhasil diberikan ke ${playerName}!`);
-    // Call loadScores after awarding points to update scoreboard in real-time
-    loadScores();
+    try {
+        // Call API to award points
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/points`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                player_name: playerName,
+                points: points
+            })
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Gagal memberikan poin');
+        }
+        
+        document.getElementById('awardPointsInput').value = '';
+        document.getElementById('awardPointsPlayer').value = '';
+        errorDiv.style.display = 'none';
+        
+        showSuccess(`${points} poin berhasil diberikan ke ${playerName}!`);
+        
+        // Refresh scores to show updated points in real-time
+        loadScores();
+    } catch (error) {
+        showErrorMessage(errorDiv, error.message);
+        errorDiv.style.display = 'block';
+    }
 }
 
 function populatePlayerDropdown() {
