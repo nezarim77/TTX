@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peserta - TTX (Teka-Teki Extra)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="peserta-page">
+            <!-- Header -->
+            <div class="page-header">
+                <button class="btn-back" onclick="goHome()">← Kembali</button>
+                <h1>Bermain TTX</h1>
+            </div>
+
+            <!-- Main Content -->
+            <div class="peserta-content">
+                <!-- Join Room Section -->
+                <div class="join-room-section">
+                    <h2>Masukkan Kode Ruangan</h2>
+                    
+                    <p class="info-text">Minta kode ruangan dari host untuk bergabung dalam permainan</p>
+
+                    <div class="form-group">
+                        <label for="playerName">Nama Pemain:</label>
+                        <input type="text" id="playerName" placeholder="Masukkan nama Anda" maxlength="30">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roomCodeInput">Kode Ruangan:</label>
+                        <input type="text" id="roomCodeInput" placeholder="Contoh: ABC123" maxlength="20" class="code-input" style="letter-spacing: 2px;">
+                    </div>
+
+                    <button class="btn btn-join" onclick="joinRoom()">Bergabung</button>
+
+                    <div id="joinError" class="error-message" style="display: none;"></div>
+                </div>
+
+                <!-- Waiting Room Section (hidden initially) -->
+                <div id="waitingRoomSection" class="waiting-room-section" style="display: none;">
+                    <h2>Menunggu Permainan Dimulai</h2>
+
+                    <div class="waiting-room-box">
+                        <div class="waiting-info">
+                            <div class="info-item">
+                                <label>Nama Ruangan:</label>
+                                <p id="displayRoomNamePeserta"></p>
+                            </div>
+
+                            <div class="info-item">
+                                <label>Nama Pemain:</label>
+                                <p id="displayPlayerName"></p>
+                            </div>
+
+                            <div class="info-item">
+                                <label>Kode Ruangan:</label>
+                                <p id="displayRoomCodePeserta" class="room-code-display"></p>
+                            </div>
+                        </div>
+
+                        <div class="waiting-indicator">
+                            <div class="spinner"></div>
+                            <p>Menunggu host memulai permainan...</p>
+                        </div>
+
+                        <div class="other-participants">
+                            <h3>Peserta Lain di Ruangan Ini</h3>
+                            <div id="otherParticipantsList" class="participants-list small">
+                                <p class="empty-message">Anda adalah peserta pertama</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-danger" onclick="leaveRoom()">Keluar dari Ruangan</button>
+                </div>
+
+                <!-- Game Play Section -->
+                <div id="gamePlaySection" class="game-play-section" style="display: none;">
+                    <div class="game-header">
+                        <div class="game-info">
+                            <span class="info-label">Pemain: <span id="playerNameDisplay"></span></span>
+                            <span class="info-label">Skor: <span id="playerScoreDisplay">0</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Peserta tidak menampilkan teks soal (hanya audio) -->
+                    <div class="answer-boxes">
+                        <div id="answerGrid" class="answer-grid"></div>
+                    </div>
+
+                    <button class="btn btn-leave-game" onclick="leaveRoom()" style="margin-top: 20px;">Keluar dari Permainan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

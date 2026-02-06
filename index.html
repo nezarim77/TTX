@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTX (Teka-Teki Extra)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-menu">
+            <div class="menu-header">
+                <h1>TTX</h1>
+                <p class="subtitle">Teka-Teki Extra</p>
+            </div>
+            
+            <div class="menu-content">
+                <p class="welcome-text">Selamat datang! Pilih peran Anda untuk memulai</p>
+                
+                <div class="menu-buttons">
+                    <button class="btn btn-host" onclick="goToHost()">
+                        <div class="btn-icon">👨‍💼</div>
+                        <div class="btn-text">
+                            <h2>Menjadi Host</h2>
+                            <p>Buat dan atur permainan</p>
+                        </div>
+                    </button>
+                    
+                    <button class="btn btn-peserta" onclick="goToPeserta()">
+                        <div class="btn-icon">👥</div>
+                        <div class="btn-text">
+                            <h2>Menjadi Peserta</h2>
+                            <p>Bergabung dengan permainan</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

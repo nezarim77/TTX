@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host - TTX (Teka-Teki Extra)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- SETUP PAGE (before game starts) -->
+        <div id="hostSetupPage" class="host-page">
+            <!-- Header -->
+            <div class="page-header">
+                <button class="btn-back" onclick="goHome()">← Kembali</button>
+                <h1>Host Control Panel</h1>
+            </div>
+
+            <!-- Main Content -->
+            <div class="host-content">
+                <!-- Tabs Navigation -->
+                <div class="tabs-navigation">
+                    <button class="tab-btn active" onclick="switchHostTab('setup')">Setup Ruangan</button>
+                    <button class="tab-btn" onclick="switchHostTab('game')">Buat Soal</button>
+                </div>
+
+                <!-- SETUP TAB -->
+                <div id="setupTab" class="tab-content active">
+                    <!-- Status Section -->
+                    <div class="status-section">
+                        <h2>Status Ruangan</h2>
+                        <div id="roomStatus" class="room-status inactive">
+                            <p>Belum ada ruangan yang dibuat</p>
+                        </div>
+                    </div>
+
+                    <!-- Create Room Section -->
+                    <div class="create-room-section">
+                        <h2>Buat Ruangan Baru</h2>
+                        
+                        <div class="form-group">
+                            <label for="roomName">Nama Ruangan:</label>
+                            <input type="text" id="roomName" placeholder="Masukkan nama ruangan" maxlength="50">
+                        </div>
+
+                        <button class="btn btn-create" onclick="createRoom()">Buat Ruangan</button>
+                    </div>
+
+                    <!-- Room Info Section -->
+                    <div id="roomInfoSection" class="room-info-section" style="display: none;">
+                        <h2>Informasi Ruangan</h2>
+                        
+                        <div class="room-info-box">
+                            <div class="info-item">
+                                <label>Nama Ruangan:</label>
+                                <p id="displayRoomName"></p>
+                            </div>
+
+                            <div class="info-item">
+                                <label>Kode Ruangan (ID):</label>
+                                <div class="code-container">
+                                    <input type="text" id="roomCode" readonly class="room-code-input">
+                                    <button class="btn btn-copy" onclick="copyRoomCode()">
+                                        <span id="copyText">Salin Kode</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="info-item">
+                                <label>Jumlah Peserta:</label>
+                                <p id="participantCount">0 peserta terhubung</p>
+                            </div>
+                        </div>
+
+                        <div class="participants-section">
+                            <h3>Daftar Peserta</h3>
+                            <div id="participantsList" class="participants-list">
+                                <p class="empty-message">Belum ada peserta yang bergabung</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 30px; display: flex; gap: 10px;">
+                            <button class="btn btn-success" id="startGameBtn" onclick="startGame()">Mulai Permainan</button>
+                            <button class="btn btn-danger" onclick="deleteRoom()">Hapus Ruangan</button>
+                        </div>
+                        <div id="gameStatusMessage" style="margin-top: 15px; text-align: center; display: none;">
+                            <p style="color: #00aa00; font-weight: bold;">🎮 Permainan Sedang Berlangsung!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GAME CREATION TAB -->
+                <div id="gameTab" class="tab-content">
+                    <!-- Room Info Section (visible in game tab too) -->
+                    <div id="gameTabRoomInfo" style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #404040;">
+                        <h3>Informasi Ruangan</h3>
+                        <div class="room-info-box">
+                            <div class="info-item">
+                                <label>Nama Ruangan:</label>
+                                <p id="displayRoomNameInGame"></p>
+                            </div>
+
+                            <div class="info-item">
+                                <label>Kode Ruangan:</label>
+                                <p id="displayRoomCodeInGame" class="room-code-display"></p>
+                            </div>
+
+                            <div class="info-item">
+                                <label>Peserta Bergabung:</label>
+                                <p id="participantCountInGame">0 peserta</p>
+                            </div>
+                        </div>
+
+                        <div class="participants-section">
+                            <h4>Daftar Peserta</h4>
+                            <div id="participantsListInGame" class="participants-list small">
+                                <p class="empty-message">Belum ada peserta yang bergabung</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 20px; display: flex; gap: 10px;">
+                            <button class="btn btn-success" id="startGameBtnInGame" onclick="startGame()">Mulai Permainan</button>
+                            <button class="btn btn-danger" id="deleteRoomBtnInGame" onclick="deleteRoom()">Hapus Ruangan</button>
+                        </div>
+                        
+                        <div id="gameStatusMessageInGame" style="margin-top: 15px; text-align: center; display: none;">
+                            <p style="color: #00aa00; font-weight: bold;">🎮 Permainan Sedang Berlangsung!</p>
+                        </div>
+                    </div>
+
+                    <!-- Question Creation Section -->
+                    <div id="gameCreationSection">
+                        <h2>Buat Soal Baru</h2>
+                        
+                        <div class="form-group">
+                            <label for="questionText">Soal:</label>
+                            <input type="text" id="questionText" placeholder="Contoh: Ibu Kota Indonesia" maxlength="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionAnswer">Jawaban:</label>
+                            <input type="text" id="questionAnswer" placeholder="Contoh: JAKARTA" maxlength="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="helpingLettersInput">Huruf Bantu (Format: posisi1,huruf;posisi2,huruf) — posisi mulai dari 1</label>
+                            <input type="text" id="helpingLettersInput" placeholder="Contoh: 1,J;6,A" title="Masukkan posisi (mulai dari 1) dan huruf dipisahkan dengan koma. Gunakan semicolon atau '|' untuk multiple">
+                            <small style="color: #999; margin-top: 5px;">Contoh: 1,J;3,K artinya huruf J di posisi 1, huruf K di posisi 3 (posisi dimulai dari 1)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionPoints">Poin untuk Soal Ini:</label>
+                            <input type="number" id="questionPoints" placeholder="Contoh: 10" min="1" max="1000" value="10">
+                        </div>
+
+                        <button class="btn btn-create" onclick="createQuestion()">Buat Soal</button>
+
+                        <div id="gameCreationError" class="error-message" style="display: none;"></div>
+                    </div>
+
+                    <!-- Questions List with Scores -->
+                    <div class="questions-section" style="margin-top: 40px;">
+                        <h3>Daftar Soal yang Dibuat</h3>
+                        <div id="questionsList" class="questions-list">
+                            <p class="empty-message">Belum ada soal yang dibuat</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME MANAGEMENT PAGE (during game) -->
+        <div id="hostGamePage" class="host-page" style="display: none;">
+            <!-- Header -->
+            <div class="page-header">
+                <button class="btn-back" onclick="endGame()">← Kembali ke Setup</button>
+                <h1>Kelola Permainan</h1>
+            </div>
+
+            <!-- Game Management Content -->
+            <div class="host-content">
+                <!-- Tab Navigation for Game Page -->
+                <div class="tabs-navigation">
+                    <button class="tab-btn active" onclick="switchGameTab('manage')">Kelola Soal Aktif</button>
+                    <button class="tab-btn" onclick="switchGameTab('createQuestion')">Tambah Soal</button>
+                    <button class="tab-btn" onclick="switchGameTab('daftarSoal')">Daftar Soal</button>
+                </div>
+
+                <!-- MANAGE TAB (Kelola Soal Aktif) -->
+                <div id="manageTab" class="tab-content active">
+                    <!-- Current Question Section -->
+                    <div id="currentQuestionDisplay">
+                        <div id="questionBox" class="question-box">
+                            <div class="question-text-display">
+                                <h3 id="displayQuestion"></h3>
+                            </div>
+
+                            <div class="answer-boxes-display">
+                                <div id="answerBoxes" class="answer-grid"></div>
+                            </div>
+
+                            <div class="host-controls">
+                                <div style="margin-bottom: 20px;">
+                                    <label for="awardPointsPlayer">Berikan Poin Ke:</label>
+                                    <select id="awardPointsPlayer">
+                                        <option value="">-- Pilih Peserta --</option>
+                                    </select>
+                                    <input type="number" id="awardPointsInput" placeholder="Jumlah Poin Soal Ini" min="0" max="1000">
+                                    <button class="btn btn-success" onclick="awardPoints()">Berikan Poin</button>
+                                </div>
+
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <button class="btn btn-reveal" onclick="revealAnswer()">Buka Jawaban</button>
+                                    <button class="btn btn-wrong" onclick="markAnswerWrong()">Jawaban Salah</button>
+                                    <button class="btn btn-next" onclick="nextQuestion()">Selanjutnya</button>
+                                </div>
+
+                                <div id="gamePlayError" class="error-message" style="display: none; margin-top: 15px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scores Board -->
+                    <div class="scores-section" style="margin-top: 40px;">
+                        <h3>Papan Skor Saat Ini</h3>
+                        <div id="scoresBoard" class="scores-board">
+                            <p class="empty-message">Belum ada skor</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CREATE QUESTION TAB (Tambah Soal) -->
+                <div id="createQuestionTab" class="tab-content">
+                    <h2>Tambahkan Soal Baru</h2>
+                    
+                    <div class="form-group">
+                        <label for="gameQuestionText">Soal:</label>
+                        <input type="text" id="gameQuestionText" placeholder="Masukkan soal" maxlength="100" style="text-transform: uppercase;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gameQuestionAnswer">Jawaban:</label>
+                        <input type="text" id="gameQuestionAnswer" placeholder="Masukkan Jawaban" maxlength="100" style="text-transform: uppercase;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gameHelpingLettersInput">Huruf Bantu (format: posisi,huruf) — posisi mulai dari 1</label>
+                        <input type="text" id="gameHelpingLettersInput" placeholder="Contoh: 1,A" maxlength="200" style="text-transform: uppercase;">
+                        <small style="color: #999; margin-top: 5px; display: block;">Gunakan pemisah ';' atau '|' untuk beberapa huruf. Posisi dimulai dari 1.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gameQuestionPoints">Poin Soal:</label>
+                        <input type="number" id="gameQuestionPoints" value="100" min="1" max="1000">
+                    </div>
+
+                    <button class="btn btn-create" onclick="createQuestionDuringGame()">Buat Soal</button>
+
+                    <div id="gameCreationError" class="error-message" style="display: none; margin-top: 15px;"></div>
+                </div>
+
+                <!-- DAFTAR SOAL TAB -->
+                <div id="daftarSoalTab" class="tab-content">
+                    <h2>Daftar Soal dalam Permainan</h2>
+                    <div id="gameQuestionsList" class="questions-list">
+                        <p class="empty-message">Belum ada soal</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
