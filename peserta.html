@@ -12,7 +12,10 @@
             <!-- Header -->
             <div class="page-header">
                 <button class="btn-back" onclick="goHome()">← Kembali</button>
-                <h1>Bermain TTX</h1>
+                <div id="displayRoomCodePesertaGame" class="room-code-display" style="margin-left:8px; display: none;">----</div>
+                <div class="header-actions" style="display: none;" id="pesertaHeaderActions">
+                    <button class="btn btn-danger" onclick="leaveRoom()">Keluar</button>
+                </div>
             </div>
 
             <!-- Main Content -->
@@ -74,14 +77,6 @@
 
                 <!-- Game Play Section -->
                 <div id="gamePlaySection" class="game-play-section" style="display: none;">
-                    <div class="page-header">
-                        <button class="btn-back" onclick="goHome()">← Kembali</button>
-                        <div id="displayRoomCodePesertaGame" class="room-code-display" style="margin-left:8px;">----</div>
-                        <div class="header-actions">
-                            <button class="btn btn-leave-game" onclick="leaveRoom()" style="margin-top: 0;">Keluar</button>
-                        </div>
-                    </div>
-
                     <div class="game-header">
                         <div class="game-info">
                             <span class="info-label">Pemain: <span id="playerNameDisplay"></span></span>

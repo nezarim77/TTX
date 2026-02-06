@@ -370,6 +370,13 @@ function initPesertaPage() {
             document.querySelector('.join-room-section').style.display = 'none';
             document.getElementById('waitingRoomSection').style.display = 'none';
             document.getElementById('gamePlaySection').style.display = 'block';
+            
+            // Show header elements for game play
+            const roomCodeDisplay = document.getElementById('displayRoomCodePesertaGame');
+            if (roomCodeDisplay) roomCodeDisplay.style.display = 'block';
+            const headerActions = document.getElementById('pesertaHeaderActions');
+            if (headerActions) headerActions.style.display = 'flex';
+            
             updateGameDisplay();
         }
     }
@@ -408,6 +415,13 @@ function joinRoom() {
     document.querySelector('.join-room-section').style.display = 'none';
     document.getElementById('waitingRoomSection').style.display = 'none';
     document.getElementById('gamePlaySection').style.display = 'block';
+    
+    // Show header elements for game play
+    const roomCodeDisplay = document.getElementById('displayRoomCodePesertaGame');
+    if (roomCodeDisplay) roomCodeDisplay.style.display = 'block';
+    const headerActions = document.getElementById('pesertaHeaderActions');
+    if (headerActions) headerActions.style.display = 'flex';
+    
     updateGameDisplay();
     
     showSuccess('Berhasil bergabung! Silakan mulai bermain.');
@@ -471,11 +485,23 @@ function leaveRoom() {
     localStorage.removeItem('ttx_playerName');
     localStorage.removeItem('ttx_playerRoomCode');
     
+    // Hide game play section
+    const gamePlaySection = document.getElementById('gamePlaySection');
+    if (gamePlaySection) {
+        gamePlaySection.style.display = 'none';
+    }
+    
     // Hide waiting room section
     const waitingRoomSection = document.getElementById('waitingRoomSection');
     if (waitingRoomSection) {
         waitingRoomSection.style.display = 'none';
     }
+    
+    // Hide header elements for game play
+    const roomCodeDisplay = document.getElementById('displayRoomCodePesertaGame');
+    if (roomCodeDisplay) roomCodeDisplay.style.display = 'none';
+    const headerActions = document.getElementById('pesertaHeaderActions');
+    if (headerActions) headerActions.style.display = 'none';
     
     // Show join room section
     const joinRoomSection = document.querySelector('.join-room-section');
