@@ -27,7 +27,7 @@ python app.py
 Anda akan melihat output seperti ini:
 ```
 ==================================================
-TTX (Teka-Teki Extra) - Backend Server
+TTX (Teka-Teki Extreme) - Backend Server
 ==================================================
 
 Server berjalan di: http://localhost:5000

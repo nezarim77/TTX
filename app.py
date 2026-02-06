@@ -1071,7 +1071,7 @@ def internal_error(error):
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("TTX (Teka-Teki Extra) - Backend Server")
+    print("TTX (Teka-Teki Extreme) - Backend Server")
     print("=" * 50)
     print("\nServer berjalan di: http://localhost:5000")
     print("CORS enabled for frontend communication")

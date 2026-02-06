@@ -1,4 +1,4 @@
-# TTX (Teka-Teki Extra) - Web Game
+# TTX (Teka-Teki Extreme) - Web Game
 
 Sebuah web game interaktif dengan sistem host-peserta untuk bermain teka-teki bersama.
 
