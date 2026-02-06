@@ -74,9 +74,15 @@
 
                 <!-- Game Play Section -->
                 <div id="gamePlaySection" class="game-play-section" style="display: none;">
-                    <div class="game-header">
+                    <div class="page-header">
                         <button class="btn-back" onclick="goHome()">← Kembali</button>
                         <div id="displayRoomCodePesertaGame" class="room-code-display" style="margin-left:8px;">----</div>
+                        <div class="header-actions">
+                            <button class="btn btn-leave-game" onclick="leaveRoom()" style="margin-top: 0;">Keluar</button>
+                        </div>
+                    </div>
+
+                    <div class="game-header">
                         <div class="game-info">
                             <span class="info-label">Pemain: <span id="playerNameDisplay"></span></span>
                             <span class="info-label">Skor: <span id="playerScoreDisplay">0</span></span>
@@ -93,8 +99,6 @@
                     <div class="answer-boxes">
                         <div id="answerGrid" class="answer-grid"></div>
                     </div>
-
-                    <button class="btn btn-leave-game" onclick="leaveRoom()" style="margin-top: 20px;">Keluar dari Permainan</button>
                 </div>
             </div>
         </div>
