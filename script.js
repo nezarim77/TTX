@@ -765,12 +765,12 @@ function createQuestion() {
     showSuccess('Soal berhasil ditambahkan!');
 }
 
-    function createQuestionDuringGame() {
+    async function createQuestionDuringGame() {
         const questionText = document.getElementById('gameQuestionText').value.trim();
         const answerText = document.getElementById('gameQuestionAnswer').value.trim().toUpperCase();
         const helpingLettersInput = document.getElementById('gameHelpingLettersInput').value.trim();
         const pointsInput = document.getElementById('gameQuestionPoints');
-        const points = pointsInput ? parseInt(pointsInput.value) : 10;
+        const points = pointsInput ? parseInt(pointsInput.value) : 100;
         const errorDiv = document.getElementById('gameCreationError');
     
         if (!questionText || !answerText) {
@@ -802,70 +802,68 @@ function createQuestion() {
             return;
         }
     
-        const room = getRoom(currentHostRoom);
-        if (!room) {
-            showErrorMessage(errorDiv, 'Ruangan tidak ditemukan!');
-            return;
+        try {
+            // Call API to create question
+            const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/questions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question: questionText,
+                    answer: answerText,
+                    helping_letters: helpingLetters,
+                    points: points
+                })
+            });
+            
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Gagal membuat soal');
+            }
+            
+            // Clear form
+            document.getElementById('gameQuestionText').value = '';
+            document.getElementById('gameQuestionAnswer').value = '';
+            document.getElementById('gameHelpingLettersInput').value = '';
+            document.getElementById('gameQuestionPoints').value = '100';
+            errorDiv.style.display = 'none';
+            
+            // Refresh displays
+            displayGameQuestionsList();
+            loadCurrentQuestion();
+            
+            showSuccess('Soal baru berhasil ditambahkan ke permainan!');
+        } catch (error) {
+            showErrorMessage(errorDiv, error.message);
         }
-    
-        // Create question object
-        const qid = 'q' + (room.questions ? room.questions.length + 1 : 1);
-        const question = {
-            question_id: qid,
-            question: questionText,
-            answer: answerText,
-            answer_length: answerText.length,
-            helping_letters: helpingLetters,
-            points: points,
-            status: 'active',
-            revealed_at: null,
-            created_at: new Date().toISOString()
-        };
-    
-        // Add to room
-        if (!room.questions) room.questions = [];
-        room.questions.push(question);
-    
-        // Save room back to localStorage
-        const allRooms = getAllRooms();
-        allRooms[currentHostRoom] = room;
-        saveRooms(allRooms);
-    
-        // Clear form
-        document.getElementById('gameQuestionText').value = '';
-        document.getElementById('gameQuestionAnswer').value = '';
-        document.getElementById('gameHelpingLettersInput').value = '';
-        document.getElementById('gameQuestionPoints').value = '10';
-        errorDiv.style.display = 'none';
-    
-        showSuccess('Soal baru berhasil ditambahkan ke permainan!');
     }
 function displayQuestionsList() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
     if (!currentHostRoom) return;
     
-    const room = getRoom(currentHostRoom);
-    if (!room || !room.questions) {
-        const list = document.getElementById('questionsList');
-        if (list) list.innerHTML = '<p class="empty-message">Belum ada soal yang dibuat</p>';
-        return;
-    }
-    
-    const listHtml = room.questions.map((q, idx) => `
-        <div class="question-item">
-            <div class="question-item-text">${idx + 1}. ${q.question}</div>
-            <div class="question-item-answer">Jawaban: ${q.answer}</div>
-            <div class="question-item-points">Poin: ${q.points || 10}</div>
-            <div class="question-item-status ${q.status === 'revealed' ? 'status-revealed' : 'status-aktif'}">${q.status === 'revealed' ? 'TERBUKA' : 'AKTIF'}</div>
-            <div class="question-item-actions">
-                <button class="btn btn-select" onclick="selectQuestion('${q.question_id}')">Pilih</button>
-                <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')">Hapus</button>
+    // Use async approach
+    getRoom(currentHostRoom).then(room => {
+        if (!room || !room.questions) {
+            const list = document.getElementById('questionsList');
+            if (list) list.innerHTML = '<p class="empty-message">Belum ada soal yang dibuat</p>';
+            return;
+        }
+        
+        const listHtml = room.questions.map((q, idx) => `
+            <div class="question-item">
+                <div class="question-item-text">${idx + 1}. ${q.question}</div>
+                <div class="question-item-answer">Jawaban: ${q.answer}</div>
+                <div class="question-item-points">Poin: ${q.points || 100}</div>
+                <div class="question-item-status ${q.status === 'revealed' ? 'status-revealed' : 'status-aktif'}">${q.status === 'revealed' ? 'TERBUKA' : 'AKTIF'}</div>
+                <div class="question-item-actions">
+                    <button class="btn btn-select" onclick="selectQuestion('${q.question_id}')">Pilih</button>
+                    <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')">Hapus</button>
+                </div>
             </div>
-        </div>
-    `).join('');
-    
-    const list = document.getElementById('questionsList');
-    if (list) list.innerHTML = listHtml;
+        `).join('');
+        
+        const list = document.getElementById('questionsList');
+        if (list) list.innerHTML = listHtml;
+    });
 }
 
 function loadCurrentQuestion() {
@@ -942,87 +940,91 @@ function loadCurrentQuestion() {
     });
 }
 
-function selectQuestion(questionId) {
+async function selectQuestion(questionId) {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
     if (!currentHostRoom) return;
-    const room = getRoom(currentHostRoom);
-    if (!room || !room.questions) return;
-
-    const q = room.questions.find(x => x.question_id === questionId);
-    if (!q) {
-        showError('Soal tidak ditemukan');
-        return;
-    }
-
-    room.current_question_id = questionId;
-    const allRooms = getAllRooms();
-    allRooms[currentHostRoom] = room;
-    saveRooms(allRooms);
-
-    loadCurrentQuestion();
-    displayQuestionsList();
-    displayGameQuestionsList();
-    showSuccess('Soal dipilih sebagai soal saat ini');
     
-    // Auto-close daftar soal modal after selection
-    closeDaftarSoalModal();
+    try {
+        // Call API to set current question
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/current-question/${questionId.toUpperCase()}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Gagal memilih soal');
+        }
+        
+        loadCurrentQuestion();
+        displayGameQuestionsList();
+        showSuccess('Soal dipilih sebagai soal saat ini');
+        
+        // Auto-close daftar soal modal after selection
+        closeDaftarSoalModal();
+    } catch (error) {
+        showError(error.message);
+    }
 }
 
-function deleteQuestion(questionId) {
+async function deleteQuestion(questionId) {
     if (!confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
         return;
     }
     
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
     if (!currentHostRoom) return;
-    const room = getRoom(currentHostRoom);
-    if (!room || !room.questions) return;
     
-    // Remove question from list
-    room.questions = room.questions.filter(q => q.question_id !== questionId);
-    
-    // If deleted question was current, set to first question if available
-    if (room.current_question_id === questionId) {
-        room.current_question_id = room.questions.length > 0 ? room.questions[0].question_id : null;
-    }
-    
-    const allRooms = getAllRooms();
-    allRooms[currentHostRoom] = room;
-    saveRooms(allRooms);
-    
-    // Refresh displays
-    displayQuestionsList();
-    displayGameQuestionsList();
-    if (room.current_question_id) {
+    try {
+        // Call API to delete question
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/questions/${questionId.toUpperCase()}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Gagal menghapus soal');
+        }
+        
+        // Refresh displays
+        displayGameQuestionsList();
         loadCurrentQuestion();
+        
+        showSuccess('Soal berhasil dihapus');
+    } catch (error) {
+        showError(error.message);
     }
-    
-    showSuccess('Soal berhasil dihapus');
 }
 
-function nextRound() {
+async function nextRound() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
     if (!currentHostRoom) return;
-    const room = getRoom(currentHostRoom);
-    if (!room) return;
     
-    // Clear current question
-    room.current_question_id = null;
-    const allRooms = getAllRooms();
-    allRooms[currentHostRoom] = room;
-    saveRooms(allRooms);
-    
-    // Hide question display and show nextQuestionState
-    const questionBox = document.getElementById('questionBox');
-    if (questionBox) questionBox.style.display = 'none';
-    const emptyState = document.getElementById('emptyQuestionState');
-    if (emptyState) emptyState.style.display = 'none';
-    const nextState = document.getElementById('nextQuestionState');
-    if (nextState) nextState.style.display = 'block';
-    const hostControls = document.getElementById('hostControls');
-    if (hostControls) hostControls.style.display = 'none';
-    
-    showSuccess('Ronde selesai. Silakan pilih soal selanjutnya atau buat soal baru.');
+    try {
+        // Call API to clear current question
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/current-question`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Gagal ke ronde selanjutnya');
+        }
+        
+        // Hide question display and show nextQuestionState
+        const questionBox = document.getElementById('questionBox');
+        if (questionBox) questionBox.style.display = 'none';
+        const emptyState = document.getElementById('emptyQuestionState');
+        if (emptyState) emptyState.style.display = 'none';
+        const nextState = document.getElementById('nextQuestionState');
+        if (nextState) nextState.style.display = 'block';
+        const hostControls = document.getElementById('hostControls');
+        if (hostControls) hostControls.style.display = 'none';
+        
+        showSuccess('Ronde selesai. Silakan pilih soal selanjutnya atau buat soal baru.');
+    } catch (error) {
+        showError(error.message);
+    }
 }
 
 function renderAnswerBoxes(question, mode) {
@@ -1153,28 +1155,30 @@ function displayGameQuestionsList() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
     if (!currentHostRoom) return;
     
-    const room = getRoom(currentHostRoom);
-    if (!room || !room.questions) {
-        const list = document.getElementById('gameQuestionsList');
-        if (list) list.innerHTML = '<p class="empty-message">Belum ada soal yang dibuat</p>';
-        return;
-    }
-    
-    const listHtml = room.questions.map((q, idx) => `
-        <div class="question-item">
-            <div class="question-item-text">${idx + 1}. ${q.question}</div>
-            <div class="question-item-answer">Jawaban: ${q.answer}</div>
-            <div class="question-item-points">Poin: ${q.points || 10}</div>
-            <div class="question-item-status ${q.status === 'revealed' ? 'status-revealed' : 'status-aktif'}">${q.status === 'revealed' ? 'TERBUKA' : 'AKTIF'}</div>
-            <div class="question-item-actions">
-                <button class="btn btn-select" onclick="selectQuestion('${q.question_id}')">Pilih</button>
-                <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')">Hapus</button>
+    // Use async approach
+    getRoom(currentHostRoom).then(room => {
+        if (!room || !room.questions) {
+            const list = document.getElementById('gameQuestionsList');
+            if (list) list.innerHTML = '<p class="empty-message">Belum ada soal yang dibuat</p>';
+            return;
+        }
+        
+        const listHtml = room.questions.map((q, idx) => `
+            <div class="question-item">
+                <div class="question-item-text">${idx + 1}. ${q.question}</div>
+                <div class="question-item-answer">Jawaban: ${q.answer}</div>
+                <div class="question-item-points">Poin: ${q.points || 100}</div>
+                <div class="question-item-status ${q.status === 'revealed' ? 'status-revealed' : 'status-aktif'}">${q.status === 'revealed' ? 'TERBUKA' : 'AKTIF'}</div>
+                <div class="question-item-actions">
+                    <button class="btn btn-select" onclick="selectQuestion('${q.question_id}')">Pilih</button>
+                    <button class="btn btn-danger" onclick="deleteQuestion('${q.question_id}')">Hapus</button>
+                </div>
             </div>
-        </div>
-    `).join('');
-    
-    const list = document.getElementById('gameQuestionsList');
-    if (list) list.innerHTML = listHtml;
+        `).join('');
+        
+        const list = document.getElementById('gameQuestionsList');
+        if (list) list.innerHTML = listHtml;
+    });
 }
 
 // Open inline tabs for create / daftar (no modals)
@@ -1296,25 +1300,29 @@ function awardPoints() {
 
 function populatePlayerDropdown() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = getRoom(currentHostRoom);
     const dropdown = document.getElementById('awardPointsPlayer');
     
-    if (!dropdown || !room) return;
+    if (!dropdown) return;
     
-    // Clear existing options except the first one
-    while (dropdown.options.length > 1) {
-        dropdown.remove(1);
-    }
-    
-    // Add participant options
-    if (room.participants && room.participants.length > 0) {
-        room.participants.forEach(participant => {
-            const option = document.createElement('option');
-            option.value = participant;
-            option.textContent = participant;
-            dropdown.appendChild(option);
-        });
-    }
+    // Use async approach
+    getRoom(currentHostRoom).then(room => {
+        if (!room) return;
+        
+        // Clear existing options except the first one
+        while (dropdown.options.length > 1) {
+            dropdown.remove(1);
+        }
+        
+        // Add participant options
+        if (room.participants && room.participants.length > 0) {
+            room.participants.forEach(participant => {
+                const option = document.createElement('option');
+                option.value = participant;
+                option.textContent = participant;
+                dropdown.appendChild(option);
+            });
+        }
+    });
 }
 
 function nextQuestion() {
@@ -1337,30 +1345,32 @@ function nextQuestion() {
 
 function loadScores() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = getRoom(currentHostRoom);
     
-    if (!room || !room.player_scores || Object.keys(room.player_scores).length === 0) {
-        document.getElementById('scoresBoard').innerHTML = '<p class="empty-message">Belum ada skor</p>';
-        return;
-    }
-    
-    const scores = Object.entries(room.player_scores);
-    scores.sort((a, b) => b[1] - a[1]);
-    
-    let html = '';
-    scores.forEach((entry, idx) => {
-        html += `
-            <div class="score-item">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span class="score-rank">#${idx + 1}</span>
-                    <span class="score-player-name">${entry[0]}</span>
+    // Use async approach
+    getRoom(currentHostRoom).then(room => {
+        if (!room || !room.player_scores || Object.keys(room.player_scores).length === 0) {
+            document.getElementById('scoresBoard').innerHTML = '<p class="empty-message">Belum ada skor</p>';
+            return;
+        }
+        
+        const scores = Object.entries(room.player_scores);
+        scores.sort((a, b) => b[1] - a[1]);
+        
+        let html = '';
+        scores.forEach((entry, idx) => {
+            html += `
+                <div class="score-item">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="score-rank">#${idx + 1}</span>
+                        <span class="score-player-name">${entry[0]}</span>
+                    </div>
+                    <span class="score-points">${entry[1]} Poin</span>
                 </div>
-                <span class="score-points">${entry[1]} Poin</span>
-            </div>
-        `;
+            `;
+        });
+        
+        document.getElementById('scoresBoard').innerHTML = html;
     });
-    
-    document.getElementById('scoresBoard').innerHTML = html;
 }
 
 // ==================== PESERTA GAME FUNCTIONS ====================

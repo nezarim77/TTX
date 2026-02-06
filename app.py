@@ -733,6 +733,135 @@ def get_current_question(room_code: str):
         }), 500
 
 
+@app.route('/api/rooms/<room_code>/current-question/<question_id>', methods=['PUT'])
+def set_current_question(room_code: str, question_id: str):
+    """
+    Set the current question for a room
+    
+    Response:
+    {
+        "success": true,
+        "message": "Current question updated",
+        "data": {
+            "current_question_id": "q1"
+        }
+    }
+    """
+    try:
+        room_code = room_code.upper()
+        question_id = question_id.upper()
+        
+        if room_code not in rooms:
+            return jsonify({
+                'success': False,
+                'message': 'Room not found'
+            }), 404
+        
+        room = rooms[room_code]
+        
+        # Check if question exists
+        question_exists = any(q['question_id'] == question_id for q in room['questions'])
+        if not question_exists:
+            return jsonify({
+                'success': False,
+                'message': 'Question not found'
+            }), 404
+        
+        # Set current question
+        room['current_question_id'] = question_id
+        
+        return jsonify({
+            'success': True,
+            'message': 'Current question updated',
+            'data': {
+                'current_question_id': room['current_question_id']
+            }
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error setting current question: {str(e)}'
+        }), 500
+
+
+@app.route('/api/rooms/<room_code>/current-question', methods=['DELETE'])
+def clear_current_question(room_code: str):
+    """
+    Clear the current question (for next round)
+    
+    Response:
+    {
+        "success": true,
+        "message": "Current question cleared"
+    }
+    """
+    try:
+        room_code = room_code.upper()
+        
+        if room_code not in rooms:
+            return jsonify({
+                'success': False,
+                'message': 'Room not found'
+            }), 404
+        
+        room = rooms[room_code]
+        room['current_question_id'] = None
+        
+        return jsonify({
+            'success': True,
+            'message': 'Current question cleared'
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error clearing current question: {str(e)}'
+        }), 500
+
+
+@app.route('/api/rooms/<room_code>/questions/<question_id>', methods=['DELETE'])
+def delete_question_api(room_code: str, question_id: str):
+    """
+    Delete a question
+    
+    Response:
+    {
+        "success": true,
+        "message": "Question deleted"
+    }
+    """
+    try:
+        room_code = room_code.upper()
+        question_id = question_id.upper()
+        
+        if room_code not in rooms:
+            return jsonify({
+                'success': False,
+                'message': 'Room not found'
+            }), 404
+        
+        room = rooms[room_code]
+        
+        # Find and remove question
+        room['questions'] = [q for q in room['questions'] if q['question_id'] != question_id]
+        
+        # If deleted question was current, clear it
+        if room['current_question_id'] == question_id:
+            room['current_question_id'] = None
+        
+        return jsonify({
+            'success': True,
+            'message': 'Question deleted'
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error deleting question: {str(e)}'
+        }), 500
+
+
 @app.route('/api/rooms/<room_code>/questions/<question_id>/reveal', methods=['PUT'])
 def reveal_question(room_code: str, question_id: str):
     """
