@@ -13,8 +13,8 @@ function goToPeserta() {
 
 // ==================== LOCAL STORAGE & API MANAGEMENT ==================== 
 // Backend API base URL - dynamically set based on current host
-// This allows same code to work on localhost, 192.168.x.x, or any domain
-const API_BASE = `http://${window.location.host}/api`;
+// Automatically use HTTPS or HTTP based on frontend protocol
+const API_BASE = `${window.location.protocol}//${window.location.host}/api`;
 
 // ==================== API WRAPPER FUNCTIONS ====================
 
