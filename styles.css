@@ -489,6 +489,26 @@ body {
     box-shadow: 0 10px 25px rgba(255, 0, 0, 0.3);
 }
 
+/* Inline button variants */
+.btn-small {
+    width: auto !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    margin: 0 !important;
+    display: inline-block;
+}
+
+.btn-small:hover {
+    transform: translateY(-1px) !important;
+}
+
+.btn-danger.btn-small {
+    background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%) !important;
+    color: white !important;
+    border: none !important;
+    margin-top: 0 !important;
+}
+
 /* ==================== ROOM INFO ==================== */
 .room-info-box {
     background: #2a2a2a;
@@ -767,7 +787,7 @@ body {
         background-color: transparent;
     }
     50% {
-        background-color: rgba(255, 0, 0, 0.9);
+        background-color: rgba(255, 0, 0, 0.8);
     }
     100% {
         background-color: transparent;
@@ -775,8 +795,7 @@ body {
 }
 
 .wrong-flash {
-    animation: wrongFlash 0.7s ease !important;
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.7) !important;
+    animation: wrongFlash 0.6s ease !important;
 }
 
 /* ==================== SYNC INDICATOR ==================== */
@@ -1032,6 +1051,22 @@ body {
     box-shadow: 0 8px 20px rgba(0, 170, 0, 0.3);
 }
 
+.btn-primary {
+    background: linear-gradient(135deg, #0066ff 0%, #0044cc 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 102, 255, 0.3);
+}
+
 .btn-reveal {
     grid-column: 1;
     padding: 12px;
@@ -1273,9 +1308,8 @@ body {
     }
 
     .page-header {
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 12px;
     }
 
@@ -1567,6 +1601,38 @@ body {
 
 .modal-body {
     padding: 18px 20px 24px 20px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 16px 20px;
+    border-top: 1px solid #404040;
+    background: #0d0d0d;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.modal-footer .btn {
+    flex: 1;
+    max-width: 150px;
+}
+
+.close {
+    color: #888;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    transition: color 0.2s ease;
+}
+
+.close:hover,
+.close:focus {
+    color: #ff0000;
 }
 
 .modal .btn-back {

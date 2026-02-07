@@ -1,8 +1,0 @@
-#!/usr/bin/env python
-import os, sys, subprocess
-if __name__ == '__main__':
-    port = os.environ.get('PORT', '8080')
-    print(f'[RUN.PY] PORT: {port}', flush=True)
-    args = ['gunicorn', 'app:app', '--bind', f'0.0.0.0:{port}', '--workers', '1', '--timeout', '120', '--log-level', 'debug', '--access-logfile', '-', '--error-logfile', '-']
-    print(f'[RUN.PY] Launching Gunicorn with debug logging', flush=True)
-    sys.exit(subprocess.call(args))

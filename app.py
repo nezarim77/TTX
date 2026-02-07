@@ -8,7 +8,6 @@ from typing import Dict, List, Optional
 # Get the directory of the current file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Create Flask app without static folder (files are served directly via routes)
 app = Flask(__name__)
 CORS(app)
 
@@ -750,7 +749,7 @@ def set_current_question(room_code: str, question_id: str):
     """
     try:
         room_code = room_code.upper()
-        question_id = question_id.upper()
+        question_id = question_id.lower()  # Convert to lowercase to match stored question_ids
         
         if room_code not in rooms:
             return jsonify({
@@ -760,8 +759,8 @@ def set_current_question(room_code: str, question_id: str):
         
         room = rooms[room_code]
         
-        # Check if question exists
-        question_exists = any(q['question_id'] == question_id for q in room['questions'])
+        # Check if question exists (case-insensitive comparison)
+        question_exists = any(q['question_id'].lower() == question_id for q in room['questions'])
         if not question_exists:
             return jsonify({
                 'success': False,
@@ -834,7 +833,7 @@ def delete_question_api(room_code: str, question_id: str):
     """
     try:
         room_code = room_code.upper()
-        question_id = question_id.upper()
+        question_id = question_id.lower()  # Convert to lowercase to match stored question_ids
         
         if room_code not in rooms:
             return jsonify({
@@ -844,11 +843,11 @@ def delete_question_api(room_code: str, question_id: str):
         
         room = rooms[room_code]
         
-        # Find and remove question
-        room['questions'] = [q for q in room['questions'] if q['question_id'] != question_id]
+        # Find and remove question (case-insensitive comparison)
+        room['questions'] = [q for q in room['questions'] if q['question_id'].lower() != question_id]
         
-        # If deleted question was current, clear it
-        if room['current_question_id'] == question_id:
+        # If deleted question was current, clear it (case-insensitive comparison)
+        if room['current_question_id'] and room['current_question_id'].lower() == question_id:
             room['current_question_id'] = None
         
         return jsonify({
@@ -879,7 +878,7 @@ def reveal_question(room_code: str, question_id: str):
     """
     try:
         room_code = room_code.upper()
-        question_id = question_id.upper()
+        question_id = question_id.lower()  # Convert to lowercase to match stored question_ids
         
         if room_code not in rooms:
             return jsonify({
@@ -889,10 +888,10 @@ def reveal_question(room_code: str, question_id: str):
         
         room = rooms[room_code]
         
-        # Find question
+        # Find question (case-insensitive comparison)
         question = None
         for q in room['questions']:
-            if q['question_id'] == question_id:
+            if q['question_id'].lower() == question_id:
                 question = q
                 break
         
@@ -1168,6 +1167,132 @@ def get_scores(room_code: str):
         }), 500
 
 
+@app.route('/api/rooms/<room_code>/remove-participant', methods=['POST'])
+def remove_participant(room_code: str):
+    """
+    Remove a participant from the room (host kicks out a player)
+    
+    Request body:
+    {
+        "player_name": "Player Name"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "message": "Participant removed"
+    }
+    """
+    try:
+        room_code = room_code.upper()
+        data = request.get_json()
+        
+        if not data or 'player_name' not in data:
+            return jsonify({
+                'success': False,
+                'message': 'Player name is required'
+            }), 400
+        
+        player_name = data['player_name'].strip()
+        
+        if room_code not in rooms:
+            return jsonify({
+                'success': False,
+                'message': 'Room not found'
+            }), 404
+        
+        room = rooms[room_code]
+        
+        if player_name not in room['participants']:
+            return jsonify({
+                'success': False,
+                'message': 'Player not found in this room'
+            }), 404
+        
+        # Remove player from room
+        room['participants'].remove(player_name)
+        
+        # Also remove their score
+        if player_name in room['player_scores']:
+            del room['player_scores'][player_name]
+        
+        return jsonify({
+            'success': True,
+            'message': 'Participant removed successfully'
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error removing participant: {str(e)}'
+        }), 500
+
+
+@app.route('/api/rooms/<room_code>/update-points', methods=['PUT'])
+def update_points(room_code: str):
+    """
+    Update/set points for a player (for host to edit points directly)
+    
+    Request body:
+    {
+        "player_name": "Player Name",
+        "points": 100
+    }
+    
+    Response:
+    {
+        "success": true,
+        "data": {
+            "player_name": "Player Name",
+            "total_score": 100
+        }
+    }
+    """
+    try:
+        room_code = room_code.upper()
+        data = request.get_json()
+        
+        if not data or 'player_name' not in data or 'points' not in data:
+            return jsonify({
+                'success': False,
+                'message': 'Player name and points are required'
+            }), 400
+        
+        player_name = data['player_name'].strip()
+        points = int(data['points'])
+        
+        if room_code not in rooms:
+            return jsonify({
+                'success': False,
+                'message': 'Room not found'
+            }), 404
+        
+        room = rooms[room_code]
+        
+        if player_name not in room['participants']:
+            return jsonify({
+                'success': False,
+                'message': 'Player not found in this room'
+            }), 404
+        
+        # Set points directly (overwrite)
+        room['player_scores'][player_name] = points
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'player_name': player_name,
+                'total_score': room['player_scores'][player_name]
+            }
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error updating points: {str(e)}'
+        }), 500
+
+
 # ==================== ERROR HANDLERS ====================
 
 @app.errorhandler(404)
@@ -1198,19 +1323,26 @@ def internal_error(error):
 
 
 # ==================== MAIN ====================
-# Production: run with Gunicorn via run.py
-# Development: use Flask test server locally only
 
 if __name__ == '__main__':
-    # Development server - only runs if script is executed directly
-    # NOT executed when imported by Gunicorn
-    print("\n" + "=" * 60)
-    print("TTX (Teka-Teki Extreme) - Backend Development Server")
-    print("=" * 60)
+    print("=" * 50)
+    print("TTX (Teka-Teki Extreme) - Backend Server")
+    print("=" * 50)
     print("\nServer berjalan di: http://localhost:5000")
-    print("CORS enabled untuk komunikasi dengan frontend")
-    print("\nUntuk production: python run.py")
-    print("=" * 60 + "\n")
+    print("CORS enabled for frontend communication")
+    print("\nEndpoints tersedia:")
+    print("  - POST   /api/rooms")
+    print("  - GET    /api/rooms/<code>")
+    print("  - DELETE /api/rooms/<code>")
+    print("  - POST   /api/rooms/<code>/join")
+    print("  - POST   /api/rooms/<code>/leave")
+    print("  - GET    /api/rooms/<code>/participants")
+    print("  - GET    /api/rooms/<code>/status")
+    print("  - POST   /api/rooms/<code>/start")
+    print("  - POST   /api/rooms/<code>/finish")
+    print("  - GET    /api/stats")
+    print("  - GET    /api/health")
+    print("\n" + "=" * 50 + "\n")
     
     app.run(
         host='0.0.0.0',
@@ -1218,3 +1350,6 @@ if __name__ == '__main__':
         debug=True,
         use_reloader=True
     )
+
+if __name__ == "__main__":
+    app.run(debug=True)

@@ -33,7 +33,7 @@ async function createNewRoom(roomName) {
         const data = await response.json();
         if (data.success) {
             const roomCode = data.data.code;
-            localStorage.setItem('ttx_currentHostRoom', roomCode);
+            saveHostSession(roomCode);
             return roomCode;
         }
         return null;
@@ -46,18 +46,16 @@ async function createNewRoom(roomName) {
 
 async function getRoom(roomCode) {
     try {
-        const url = `${API_BASE}/rooms/${roomCode.toUpperCase()}`;
-        const response = await fetch(url);
+        const response = await fetch(`${API_BASE}/rooms/${roomCode.toUpperCase()}`);
         
         if (!response.ok) {
-            console.error(`API Error: GET ${url} returned ${response.status} ${response.statusText}`);
             return null;
         }
         
         const data = await response.json();
         return data.success ? data.data : null;
     } catch (error) {
-        console.error(`Error getting room (${roomCode}):`, error.message, error.stack);
+        console.error('Error getting room:', error);
         return null;
     }
 }
@@ -69,7 +67,7 @@ async function deleteRoom(roomCode) {
         });
         
         if (response.ok) {
-            localStorage.removeItem('ttx_currentHostRoom');
+            clearHostSession();
         }
     } catch (error) {
         console.error('Error deleting room:', error);
@@ -134,19 +132,98 @@ function saveRooms(rooms) {
     localStorage.setItem('ttx_rooms', JSON.stringify(rooms));
 }
 
-// ==================== HOST PAGE LOGIC ==================== 
-async function initHostPage() {
-    let currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+// ==================== SESSION MANAGEMENT ==================== 
+// Safely manage localStorage data for persistent sessions
 
-    // If host hasn't created a room yet, create one immediately and go to game page
+function saveHostSession(roomCode) {
+    if (roomCode) {
+        localStorage.setItem('ttx_currentHostRoom', roomCode);
+    }
+}
+
+function savePesertaSession(playerName, roomCode) {
+    if (playerName && roomCode) {
+        localStorage.setItem('ttx_playerName', playerName);
+        localStorage.setItem('ttx_playerRoomCode', roomCode);
+    }
+}
+
+function clearHostSession() {
+    localStorage.removeItem('ttx_currentHostRoom');
+}
+
+function clearPesertaSession() {
+    localStorage.removeItem('ttx_playerName');
+    localStorage.removeItem('ttx_playerRoomCode');
+}
+
+async function validateHostSession() {
+    const roomCode = localStorage.getItem('ttx_currentHostRoom');
+    if (!roomCode) return null;
+    
+    const room = await getRoom(roomCode);
+    if (!room) {
+        // Room was deleted - clear session
+        clearHostSession();
+        return null;
+    }
+    
+    return roomCode;
+}
+
+async function validatePesertaSession() {
+    const playerName = localStorage.getItem('ttx_playerName');
+    const roomCode = localStorage.getItem('ttx_playerRoomCode');
+    
+    if (!playerName || !roomCode) return null;
+    
+    // Try to get room
+    let room = await getRoom(roomCode);
+    
+    // If failed, retry once with small delay (handles network hiccups)
+    if (!room) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        room = await getRoom(roomCode);
+    }
+    
+    if (!room) {
+        // Room not found even after retry - could be deleted or network error
+        // Try to remove participant anyway (will fail silently if room doesn't exist)
+        await removeParticipantFromRoom(roomCode, playerName);
+        clearPesertaSession();
+        // Return null to invalidate session - don't assume explicit deletion
+        return null;
+    }
+    
+    // Check if player still in room
+    if (!room.participants || !room.participants.includes(playerName)) {
+        // Player was removed by host - remove participant and clear session
+        await removeParticipantFromRoom(roomCode, playerName);
+        clearPesertaSession();
+        return { playerRemoved: true, playerName, roomCode };
+    }
+    
+    return { playerName, roomCode };
+}
+
+// ==================== HOST PAGE LOGIC ====================  
+async function initHostPage() {
+    // Validate existing session first
+    let currentHostRoom = await validateHostSession();
+
+    // If no valid session, create a new room
     if (!currentHostRoom) {
         const autoName = 'Ruangan Host';
-        const roomCode = await createNewRoom(autoName);
-        currentHostRoom = roomCode;
+        currentHostRoom = await createNewRoom(autoName);
+        if (!currentHostRoom) return;
     }
 
     const room = await getRoom(currentHostRoom);
-    if (!room) return;
+    if (!room) {
+        // Room no longer exists
+        clearHostSession();
+        return;
+    }
 
     // Immediately show game page for host. Questions will be created in-game.
     showGamePage();
@@ -393,13 +470,20 @@ function leaveRoomAsHost() {
 
 // ==================== PESERTA PAGE LOGIC ==================== 
 async function initPesertaPage() {
-    const playerName = localStorage.getItem('ttx_playerName');
-    const roomCode = localStorage.getItem('ttx_playerRoomCode');
+    // Validate existing session first
+    const session = await validatePesertaSession();
     
-    if (playerName && roomCode) {
-        const room = await getRoom(roomCode);
-        if (room) {
-            // Hide join section and always show game play (peserta langsung main)
+    // Check if session was invalidated due to player removal
+    if (session && session.playerRemoved) {
+        alert('Anda telah dikeluarkan dari ruangan oleh host. Anda akan kembali ke beranda.');
+        goHome();
+        return;
+    }
+    
+    if (session && session.playerName && session.roomCode) {
+        const room = await getRoom(session.roomCode);
+        if (room && room.participants && room.participants.includes(session.playerName)) {
+            // Valid session - hide join section and show game play
             document.querySelector('.join-room-section').style.display = 'none';
             document.getElementById('waitingRoomSection').style.display = 'none';
             document.getElementById('gamePlaySection').style.display = 'block';
@@ -411,7 +495,14 @@ async function initPesertaPage() {
             if (headerActions) headerActions.style.display = 'flex';
             
             updateGameDisplay();
+        } else {
+            // Can't restore session - clear and show join screen
+            clearPesertaSession();
+            document.querySelector('.join-room-section').style.display = 'block';
         }
+    } else {
+        // No valid session - show join screen
+        document.querySelector('.join-room-section').style.display = 'block';
     }
 }
 
@@ -440,8 +531,7 @@ async function joinRoom() {
         await addParticipantToRoom(roomCode, playerName);
         
         // Save to localStorage
-        localStorage.setItem('ttx_playerName', playerName);
-        localStorage.setItem('ttx_playerRoomCode', roomCode);
+        savePesertaSession(playerName, roomCode);
         
         // Clear join form
         playerNameInput.value = '';
@@ -522,8 +612,7 @@ function leaveRoom() {
         removeParticipantFromRoom(roomCode, playerName);
     }
     
-    localStorage.removeItem('ttx_playerName');
-    localStorage.removeItem('ttx_playerRoomCode');
+    clearPesertaSession();
     
     // Hide game play section
     const gamePlaySection = document.getElementById('gamePlaySection');
@@ -557,8 +646,145 @@ function leaveRoomAsHost() {
     
     if (currentHostRoom && confirm('Apakah Anda yakin ingin meninggalkan ruangan ini?')) {
         deleteRoom(currentHostRoom);
-        localStorage.removeItem('ttx_currentHostRoom');
+        clearHostSession();
         window.location.href = '/';
+    }
+}
+
+// ==================== HOST PARTICIPANT MANAGEMENT ====================
+async function removeParticipantFromRoomHost(playerName) {
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    
+    if (!currentHostRoom) {
+        showError('Ruangan tidak ditemukan');
+        return;
+    }
+    
+    if (!confirm(`Apakah Anda yakin ingin mengeluarkan peserta ${playerName}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom}/remove-participant`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ player_name: playerName })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            showError(errorData.message || 'Gagal mengeluarkan peserta');
+            return;
+        }
+        
+        showSuccess(`${playerName} telah dikeluarkan dari ruangan`);
+        loadScores(); // Refresh scores display
+    } catch (error) {
+        console.error('Error removing participant:', error);
+        showError('Gagal mengeluarkan peserta: ' + error.message);
+    }
+}
+
+function openEditPointsModal(playerName) {
+    const modal = document.getElementById('editPointsModal');
+    if (!modal) {
+        // Create modal if it doesn't exist
+        createEditPointsModal();
+    }
+    
+    const playerNameInput = document.getElementById('editPointsPlayerName');
+    const pointsInput = document.getElementById('editPointsInput');
+    
+    if (playerNameInput) {
+        playerNameInput.value = playerName;
+    }
+    
+    // Get current points and populate the input
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    getRoom(currentHostRoom).then(room => {
+        if (room && room.player_scores && room.player_scores[playerName] !== undefined) {
+            if (pointsInput) {
+                pointsInput.value = room.player_scores[playerName];
+            }
+        }
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    });
+}
+
+function createEditPointsModal() {
+    // Check if modal already exists
+    if (document.getElementById('editPointsModal')) return;
+    
+    const modal = document.createElement('div');
+    modal.id = 'editPointsModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Poin Peserta</h2>
+                <span class="close" onclick="document.getElementById('editPointsModal').style.display='none'">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editPointsPlayerName" />
+                <div class="form-group">
+                    <label for="editPointsInput">Poin:</label>
+                    <input type="number" id="editPointsInput" min="0" placeholder="Masukkan poin">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="document.getElementById('editPointsModal').style.display='none'">Batal</button>
+                <button class="btn btn-primary" onclick="saveEditedPoints()">Simpan</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+}
+
+async function saveEditedPoints() {
+    const playerName = document.getElementById('editPointsPlayerName').value;
+    const pointsInput = document.getElementById('editPointsInput');
+    const points = parseInt(pointsInput.value);
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    
+    if (!playerName || isNaN(points) || points < 0) {
+        showError('Masukkan poin yang valid');
+        return;
+    }
+    
+    if (!currentHostRoom) {
+        showError('Ruangan tidak ditemukan');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom}/update-points`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ player_name: playerName, points: points })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            showError(errorData.message || 'Gagal mengupdate poin');
+            return;
+        }
+        
+        showSuccess(`Poin ${playerName} telah diupdate menjadi ${points}`);
+        document.getElementById('editPointsModal').style.display = 'none';
+        loadScores(); // Refresh scores display
+    } catch (error) {
+        console.error('Error updating points:', error);
+        showError('Gagal mengupdate poin: ' + error.message);
     }
 }
 
@@ -938,7 +1164,7 @@ async function selectQuestion(questionId) {
     
     try {
         // Call API to set current question
-        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/current-question/${questionId.toUpperCase()}`, {
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/current-question/${questionId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -965,7 +1191,7 @@ async function deleteQuestion(questionId) {
     
     try {
         // Call API to delete question
-        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/questions/${questionId.toUpperCase()}`, {
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/questions/${questionId}`, {
             method: 'DELETE'
         });
         
@@ -1044,7 +1270,7 @@ function renderAnswerBoxes(question, mode) {
     grid.innerHTML = html;
 }
 
-async function checkAnswer() {
+function checkAnswer() {
     const guessText = document.getElementById('guessInput').value.trim().toUpperCase();
     const feedbackDiv = document.getElementById('answerFeedback');
     const resultDiv = document.getElementById('answerCheckResult');
@@ -1056,21 +1282,10 @@ async function checkAnswer() {
     }
     
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = await getRoom(currentHostRoom);
-    
-    if (!room || !room.questions) {
-        showErrorMessage(feedbackDiv, 'Tidak dapat memuat room');
-        resultDiv.style.display = 'block';
-        return;
-    }
-    
+    const room = getRoom(currentHostRoom);
     const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
     
-    if (!currentQ) {
-        showErrorMessage(feedbackDiv, 'Tidak ada pertanyaan yang aktif');
-        resultDiv.style.display = 'block';
-        return;
-    }
+    if (!currentQ) return;
     
     const isCorrect = (guessText === currentQ.answer);
     
@@ -1091,9 +1306,14 @@ async function checkAnswer() {
 
 async function revealAnswer() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    
+    if (!currentHostRoom) {
+        showError('Ruangan tidak ditemukan');
+        return;
+    }
+    
     const room = await getRoom(currentHostRoom);
     
-    // Add null checks
     if (!room) {
         showError('Room tidak ditemukan');
         return;
@@ -1104,6 +1324,11 @@ async function revealAnswer() {
         return;
     }
     
+    if (!room.current_question_id) {
+        showError('Tidak ada pertanyaan yang dipilih');
+        return;
+    }
+    
     const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
     
     if (!currentQ) {
@@ -1111,15 +1336,24 @@ async function revealAnswer() {
         return;
     }
     
-    currentQ.status = 'revealed';
-    currentQ.revealed_at = new Date().toISOString();
-    
-    const allRooms = getAllRooms();
-    allRooms[currentHostRoom] = room;
-    saveRooms(allRooms);
-    loadCurrentQuestion();
-    
-    showSuccess('Jawaban telah dibuka!');
+    try {
+        // Call API to reveal the answer
+        const response = await fetch(`${API_BASE}/rooms/${currentHostRoom.toUpperCase()}/questions/${currentQ.question_id}/reveal`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Gagal membuka jawaban');
+        }
+        
+        showSuccess('Jawaban telah dibuka!');
+        loadCurrentQuestion();
+    } catch (error) {
+        console.error('Error revealing answer:', error);
+        showError('Gagal membuka jawaban: ' + error.message);
+    }
 }
 
 function markAnswerWrong() {
@@ -1356,14 +1590,9 @@ function populatePlayerDropdown() {
     });
 }
 
-async function nextQuestion() {
+function nextQuestion() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = await getRoom(currentHostRoom);
-    
-    if (!room || !room.questions || !Array.isArray(room.questions)) {
-        showError('Tidak dapat memuat pertanyaan');
-        return;
-    }
+    const room = getRoom(currentHostRoom);
     
     const currentIdx = room.questions.findIndex(q => q.question_id === room.current_question_id);
     
@@ -1384,6 +1613,7 @@ function loadScores() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
     const playerRoomCode = localStorage.getItem('ttx_playerRoomCode');
     const roomCode = currentHostRoom || playerRoomCode;
+    const isHost = !!currentHostRoom;
     
     if (!roomCode) return;
     
@@ -1413,13 +1643,24 @@ function loadScores() {
         
         let html = '';
         scores.forEach((entry, idx) => {
+            let actionButtons = '';
+            if (isHost) {
+                actionButtons = `<div style="display: flex; gap: 8px;">
+                                <button class="btn btn-small" onclick="openEditPointsModal('${entry[0]}')" style="padding: 6px 12px; font-size: 13px;">Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="removeParticipantFromRoomHost('${entry[0]}')" style="padding: 6px 12px; font-size: 13px;">Hapus</button>
+                            </div>`;
+            }
+            
             html += `
-                <div class="score-item">
+                <div class="score-item" style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span class="score-rank">#${idx + 1}</span>
                         <span class="score-player-name">${entry[0]}</span>
                     </div>
-                    <span class="score-points">${entry[1]} Poin</span>
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <span class="score-points">${entry[1]} Poin</span>
+                        ${actionButtons}
+                    </div>
                 </div>
             `;
         });
@@ -1474,7 +1715,7 @@ async function updateGameDisplay() {
     }
 }
 
-async function submitPesertaAnswer() {
+function submitPesertaAnswer() {
     const playerName = localStorage.getItem('ttx_playerName');
     const roomCode = localStorage.getItem('ttx_playerRoomCode');
     const answerInput = document.getElementById('playerAnswer').value.trim().toUpperCase();
@@ -1487,21 +1728,10 @@ async function submitPesertaAnswer() {
         return;
     }
     
-    const room = await getRoom(roomCode);
-    
-    if (!room || !room.questions) {
-        showErrorMessage(resultText, 'Tidak dapat memuat room');
-        resultDiv.style.display = 'block';
-        return;
-    }
-    
+    const room = getRoom(roomCode);
     const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
     
-    if (!currentQ) {
-        showErrorMessage(resultText, 'Tidak ada pertanyaan yang aktif');
-        resultDiv.style.display = 'block';
-        return;
-    }
+    if (!currentQ) return;
     
     const isCorrect = (answerInput === currentQ.answer);
     
@@ -1635,7 +1865,7 @@ setInterval(function() {
     } else if (pathname === '/peserta') {
         pollPesertaPage();
     }
-}, 2000); // Refresh every 2 seconds instead of 1 to reduce API load
+}, 1000); // Refresh every 1 second for better real-time feel
 
 // Peserta gets additional faster polling for wrong-answer flash responsiveness
 setInterval(function() {
@@ -1644,6 +1874,10 @@ setInterval(function() {
         const playerName = localStorage.getItem('ttx_playerName');
         const roomCode = localStorage.getItem('ttx_playerRoomCode');
         if (!playerName || !roomCode) return;
+        
+        // Quick check for wrong flash flag (more responsive)
+        getRoom(roomCode).then(room => {
+            if (room && room.current_question_id && room.questions) {
                 const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
                 if (currentQ && currentQ.wrong_flash_time) {
                     const lastWrongTime = currentQ.wrong_flash_time;
