@@ -1,28 +1,29 @@
 #!/usr/bin/env python
 """
-Simple wrapper to run Gunicorn with proper port binding.
-Reads PORT from environment variable and passes it explicitly to gunicorn.
+Wrapper to run Gunicorn with proper PORT environment variable binding.
 """
 import os
 import sys
 import subprocess
 
-# Get PORT from environment, default to 8080
-port = os.environ.get('PORT', '8080')
-print(f"[STARTUP] PORT from environment: {port}")
-
-# Build gunicorn command with explicit port
-cmd = [
-    'gunicorn',
-    'app:app',
-    f'--bind', f'0.0.0.0:{port}',
-    '--workers', '1',
-    '--timeout', '60',
-    '--access-logfile', '-',
-]
-
-print(f"[STARTUP] Running: {' '.join(cmd)}")
-sys.stdout.flush()
-
-# Execute gunicorn
-os.execvp(cmd[0], cmd)
+if __name__ == '__main__':
+    # Read PORT from environment variable, default to 8080 if not set
+    port = os.environ.get('PORT', '8080')
+    print(f"[STARTUP] PORT={port}", flush=True)
+    
+    # Build gunicorn command
+    cmd = [
+        'gunicorn',
+        'app:app',
+        '--bind', f'0.0.0.0:{port}',
+        '--workers', '1',
+        '--timeout', '60',
+        '--access-logfile', '-',
+    ]
+    
+    print(f"[STARTUP] Executing: {' '.join(cmd)}", flush=True)
+    sys.stdout.flush()
+    
+    # Run gunicorn
+    exit_code = subprocess.call(cmd)
+    sys.exit(exit_code)
