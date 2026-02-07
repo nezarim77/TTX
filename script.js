@@ -1,5 +1,15 @@
 // ==================== NAVIGATION ==================== 
+// Store polling interval IDs so we can clear them when navigating
+let pollHostInterval = null;
+let pollPesertaInterval = null;
+let pollPesertaWrongFlashInterval = null;
+
 function goHome() {
+    // Clear all polling intervals before navigating
+    if (pollHostInterval) clearInterval(pollHostInterval);
+    if (pollPesertaInterval) clearInterval(pollPesertaInterval);
+    if (pollPesertaWrongFlashInterval) clearInterval(pollPesertaWrongFlashInterval);
+    
     window.location.href = '/';
 }
 
@@ -55,7 +65,8 @@ async function getRoom(roomCode) {
         const data = await response.json();
         return data.success ? data.data : null;
     } catch (error) {
-        console.error('Error getting room:', error);
+        // Silently return null on error - don't log verbose errors to avoid console spam
+        // Network errors or parsing errors are handled individually by the caller
         return null;
     }
 }
@@ -522,6 +533,11 @@ function leaveRoom() {
     
     localStorage.removeItem('ttx_playerName');
     localStorage.removeItem('ttx_playerRoomCode');
+    
+    // Clear polling intervals
+    if (pollHostInterval) clearInterval(pollHostInterval);
+    if (pollPesertaInterval) clearInterval(pollPesertaInterval);
+    if (pollPesertaWrongFlashInterval) clearInterval(pollPesertaWrongFlashInterval);
     
     // Hide game play section
     const gamePlaySection = document.getElementById('gamePlaySection');
@@ -1513,10 +1529,21 @@ async function pollPesertaPage() {
     
     // If room has been deleted on host, inform peserta and clean up
     if (!room) {
-        alert('Ruangan telah dihapus oleh host. Anda akan kembali ke beranda.');
+        // Clear polling first to prevent re-entering this logic
+        if (pollHostInterval) clearInterval(pollHostInterval);
+        if (pollPesertaInterval) clearInterval(pollPesertaInterval);
+        if (pollPesertaWrongFlashInterval) clearInterval(pollPesertaWrongFlashInterval);
+        
+        // Clear storage
         localStorage.removeItem('ttx_playerName');
         localStorage.removeItem('ttx_playerRoomCode');
-        goHome();
+        
+        // Show message and navigate
+        setTimeout(() => {
+            alert('Ruangan telah dihapus oleh host. Anda akan kembali ke beranda.');
+            goHome();
+        }, 100);
+        
         return;
     }
 
@@ -1573,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Optional: Auto-refresh data periodically (for real-time updates)
-setInterval(function() {
+pollHostInterval = setInterval(function() {
     const pathname = window.location.pathname;
     
     if (pathname === '/host') {
@@ -1584,7 +1611,7 @@ setInterval(function() {
 }, 1000); // Refresh every 1 second for better real-time feel
 
 // Peserta gets additional faster polling for wrong-answer flash responsiveness
-setInterval(function() {
+pollPesertaWrongFlashInterval = setInterval(function() {
     const pathname = window.location.pathname;
     if (pathname === '/peserta') {
         const playerName = localStorage.getItem('ttx_playerName');
