@@ -1,27 +1,34 @@
 import sys
 print(f"[APP] Starting import at {sys.argv}", flush=True)
 
-from flask import Flask, jsonify, request, send_from_directory, Response
-from flask_cors import CORS
-import uuid
-import os
-from datetime import datetime
-from typing import Dict, List, Optional
+try:
+    from flask import Flask, jsonify, request, send_from_directory, Response
+    from flask_cors import CORS
+    import uuid
+    import os
+    from datetime import datetime
+    from typing import Dict, List, Optional
 
-print(f"[APP] Imports complete", flush=True)
+    print(f"[APP] Imports complete", flush=True)
 
-# Get the directory of the current file
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Get the directory of the current file
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Create Flask app
-print(f"[APP] Creating Flask app...", flush=True)
-app = Flask(__name__)
-print(f"[APP] Flask app created", flush=True)
+    # Create Flask app
+    print(f"[APP] Creating Flask app...", flush=True)
+    app = Flask(__name__)
+    print(f"[APP] Flask app created", flush=True)
 
-# Enable CORS
-print(f"[APP] Initializing CORS...", flush=True)
-CORS(app)
-print(f"[APP] CORS initialized", flush=True)
+    # Enable CORS
+    print(f"[APP] Initializing CORS...", flush=True)
+    CORS(app)
+    print(f"[APP] CORS initialized", flush=True)
+    
+except Exception as e:
+    print(f"[APP-ERROR] Exception during init: {type(e).__name__}: {e}", flush=True)
+    import traceback
+    traceback.print_exc()
+    raise
 
 # Test routes
 print(f"[APP] Defining test route...", flush=True)
