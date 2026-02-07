@@ -46,16 +46,18 @@ async function createNewRoom(roomName) {
 
 async function getRoom(roomCode) {
     try {
-        const response = await fetch(`${API_BASE}/rooms/${roomCode.toUpperCase()}`);
+        const url = `${API_BASE}/rooms/${roomCode.toUpperCase()}`;
+        const response = await fetch(url);
         
         if (!response.ok) {
+            console.error(`API Error: GET ${url} returned ${response.status} ${response.statusText}`);
             return null;
         }
         
         const data = await response.json();
         return data.success ? data.data : null;
     } catch (error) {
-        console.error('Error getting room:', error);
+        console.error(`Error getting room (${roomCode}):`, error.message, error.stack);
         return null;
     }
 }
@@ -1633,7 +1635,7 @@ setInterval(function() {
     } else if (pathname === '/peserta') {
         pollPesertaPage();
     }
-}, 1000); // Refresh every 1 second for better real-time feel
+}, 2000); // Refresh every 2 seconds instead of 1 to reduce API load
 
 // Peserta gets additional faster polling for wrong-answer flash responsiveness
 setInterval(function() {
@@ -1642,10 +1644,6 @@ setInterval(function() {
         const playerName = localStorage.getItem('ttx_playerName');
         const roomCode = localStorage.getItem('ttx_playerRoomCode');
         if (!playerName || !roomCode) return;
-        
-        // Quick check for wrong flash flag (more responsive)
-        getRoom(roomCode).then(room => {
-            if (room && room.current_question_id && room.questions) {
                 const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
                 if (currentQ && currentQ.wrong_flash_time) {
                     const lastWrongTime = currentQ.wrong_flash_time;

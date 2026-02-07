@@ -1,85 +1,53 @@
-import sys
-print(f"[APP] Starting import at {sys.argv}", flush=True)
+from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
+import uuid
+import os
+from datetime import datetime
+from typing import Dict, List, Optional
 
-try:
-    from flask import Flask, jsonify, request, send_from_directory, Response
-    from flask_cors import CORS
-    import uuid
-    import os
-    from datetime import datetime
-    from typing import Dict, List, Optional
+# Get the directory of the current file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    print(f"[APP] Imports complete", flush=True)
-
-    # Get the directory of the current file
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-    # Create Flask app
-    print(f"[APP] Creating Flask app...", flush=True)
-    app = Flask(__name__)
-    print(f"[APP] Flask app created", flush=True)
-
-    # Enable CORS
-    print(f"[APP] Initializing CORS...", flush=True)
-    CORS(app)
-    print(f"[APP] CORS initialized", flush=True)
-    
-except Exception as e:
-    print(f"[APP-ERROR] Exception during init: {type(e).__name__}: {e}", flush=True)
-    import traceback
-    traceback.print_exc()
-    raise
-
-# Test routes
-print(f"[APP] Defining test route...", flush=True)
-@app.route('/test')
-def test():
-    """Ultra minimal test endpoint"""
-    sys.stdout.flush()
-    print(f"[APP-REQUEST] /test handler invoked", flush=True)
-    sys.stdout.flush()
-    response = Response("OK", status=200, mimetype='text/plain')
-    print(f"[APP-REQUEST] /test response created: {response}", flush=True)
-    sys.stdout.flush()
-    return response
-print(f"[APP] Test route defined", flush=True)
+# Create Flask app without static folder (files are served directly via routes)
+app = Flask(__name__)
+CORS(app)
 
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
 rooms: Dict[str, dict] = {}
 connections: Dict[str, List[str]] = {}  # room_code -> list of player names
 
-print(f"[APP] Database structures initialized", flush=True)
 
 # ==================== PAGE ROUTES ====================
 
-print(f"[APP] Defining page routes...", flush=True)
-
 @app.route('/')
 def index():
+    """Serve index.html"""
     return send_from_directory(BASE_DIR, 'index.html')
 
 
 @app.route('/host')
 def host_page():
+    """Serve host.html"""
     return send_from_directory(BASE_DIR, 'host.html')
 
 
 @app.route('/peserta')
 def peserta_page():
+    """Serve peserta.html"""
     return send_from_directory(BASE_DIR, 'peserta.html')
 
 
 @app.route('/styles.css')
 def serve_css():
+    """Serve styles.css"""
     return send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
 
 
 @app.route('/script.js')
 def serve_js():
+    """Serve script.js"""
     return send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
-
-print(f"[APP] Page routes defined", flush=True)
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -596,8 +564,15 @@ def get_stats():
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Minimal health check - no logging to avoid any overhead"""
-    return jsonify({'status': 'ok'})
+    """
+    Health check endpoint
+    
+    Response:
+    {
+        "status": "ok"
+    }
+    """
+    return jsonify({'status': 'ok'}), 200
 
 
 # ==================== GAME LOGIC ENDPOINTS ====================
@@ -1222,25 +1197,6 @@ def internal_error(error):
     }), 500
 
 
-# ==================== GLOBAL ERROR HANDLER ====================
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    """Catch ALL exceptions and return error response"""
-    return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
-
-
-@app.errorhandler(404)
-def handle_404(e):
-    """Handle 404 errors"""
-    return jsonify({'error': 'Not found'}), 404
-
-
 # ==================== MAIN ====================
-# Production: run with Gunicorn
-print(f"[APP] ✅ ALL ROUTES AND HANDLERS REGISTERED - APP READY!", flush=True)
-
-def run_local():
-    """Run development server locally. Not used in production."""
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+# Production: run with Gunicorn via run.py
+# Development: use Flask test server locally only
