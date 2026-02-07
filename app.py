@@ -14,6 +14,12 @@ app = Flask(__name__)
 # Enable CORS
 CORS(app)
 
+# Test routes
+@app.route('/test')
+def test():
+    """Ultra minimal test endpoint"""
+    return "OK", 200
+
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
 rooms: Dict[str, dict] = {}
