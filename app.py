@@ -1,8 +1,8 @@
 import sys
 print(f"[APP] Starting import at {sys.argv}", flush=True)
 
-from flask import Flask, jsonify, request, send_from_directory
-# from flask_cors import CORS  # TEMPORARILY DISABLED FOR TESTING
+from flask import Flask, jsonify, request, send_from_directory, Response
+from flask_cors import CORS
 import uuid
 import os
 from datetime import datetime
@@ -20,15 +20,21 @@ print(f"[APP] Flask app created", flush=True)
 
 # Enable CORS
 print(f"[APP] Initializing CORS...", flush=True)
-# CORS(app)  # TEMPORARILY DISABLED
-print(f"[APP] CORS skipped for testing", flush=True)
+CORS(app)
+print(f"[APP] CORS initialized", flush=True)
 
 # Test routes
 print(f"[APP] Defining test route...", flush=True)
 @app.route('/test')
 def test():
     """Ultra minimal test endpoint"""
-    return "OK", 200
+    sys.stdout.flush()
+    print(f"[APP-REQUEST] /test handler invoked", flush=True)
+    sys.stdout.flush()
+    response = Response("OK", status=200, mimetype='text/plain')
+    print(f"[APP-REQUEST] /test response created: {response}", flush=True)
+    sys.stdout.flush()
+    return response
 print(f"[APP] Test route defined", flush=True)
 
 # ==================== IN-MEMORY DATABASE ====================
