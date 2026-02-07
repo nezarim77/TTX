@@ -66,6 +66,42 @@ body {
     text-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
     letter-spacing: 3px;
 }
+/* ==================== LOGO TTX ==================== */
+.menu-header {
+    position: relative;
+}
+
+.menu-header .logo {
+    font-size: 4.5em;
+    font-weight: 900;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+/* TT putih */
+.menu-header .logo-tt {
+    color: #ffffff;
+}
+
+/* X merah – glow aman */
+.menu-header .logo-x {
+    color: #ff0000;
+    text-shadow: 0 0 12px rgba(255, 0, 0, 0.45);
+}
+
+@media (max-width: 768px) {
+    .menu-header .logo {
+        font-size: 3em;
+    }
+}
+
+@media (max-width: 480px) {
+    .menu-header .logo {
+        font-size: 2.2em;
+    }
+}
+
 
 .menu-header .subtitle {
     font-size: 1.4em;
@@ -74,6 +110,29 @@ body {
     letter-spacing: 2px;
     text-transform: uppercase;
 }
+
+/* ==================== SUBTITLE TTX ==================== */
+.subtitle {
+    font-size: 1.4em;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.subtitle .sub-white {
+    color: #ffffff;
+}
+
+.subtitle .sub-red {
+    color: #ff0000;
+}
+
+@media (max-width: 480px) {
+    .subtitle {
+        font-size: 1em;
+    }
+}
+
 
 .welcome-text {
     font-size: 1.1em;
@@ -240,6 +299,8 @@ body {
     width: calc(100% - 40px);
     max-width: none;
     align-self: stretch;
+    margin: 20px auto;
+    box-sizing: border-box;
 }
 
 .host-page::before,
@@ -1197,6 +1258,15 @@ body {
         flex-direction: column;
     }
 
+    /* Make host controls stack vertically on smaller screens */
+    .host-controls {
+        grid-template-columns: 1fr;
+    }
+
+    body {
+        align-items: flex-start;
+    }
+
     .btn-copy {
         width: 100%;
     }
@@ -1215,6 +1285,7 @@ body {
 @media (max-width: 480px) {
     body {
         padding: 10px;
+        align-items: flex-start;
     }
 
     .menu-header h1 {
@@ -1241,6 +1312,20 @@ body {
     .host-content,
     .peserta-content {
         padding: 15px;
+    }
+
+    /* Stack answer submission input + button on very small screens */
+    .answer-submission {
+        flex-direction: column;
+    }
+
+    .answer-submission input {
+        width: 100%;
+    }
+
+    .btn-submit-answer {
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .room-info-box {
@@ -1284,6 +1369,12 @@ body {
     border-radius: 12px;
     z-index: 9999;
     box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+
+/* Ensure modal fits small screens and becomes scrollable if content is tall */
+.modal {
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-header {

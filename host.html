@@ -8,7 +8,7 @@
 </head>
 <body>
         <!-- GAME MANAGEMENT PAGE (main game page for host) -->
-        <div id="hostGamePage" class="host-page" style="display: block; margin: 20px;">
+        <div id="hostGamePage" class="host-page" style="display: block;">
             <!-- Header -->
                 <div class="page-header">
                 <button class="btn-back" onclick="goHome()">← Kembali</button>
@@ -32,7 +32,6 @@
                             <h1>SILAHKAN BUAT DULU</h1>
                             <div class="question-actions">
                                 <button class="btn" onclick="openCreateQuestionModal()">Tambah Soal</button>
-                                <button class="btn" onclick="openDaftarSoalModal()">Daftar Soal</button>
                             </div>
                         </div>
 
@@ -42,7 +41,6 @@
                             <h1>ATAU TAMBAHKAN SOAL BARU</h1>
                             <div class="question-actions">
                                 <button class="btn" onclick="openCreateQuestionModal()">Tambah Soal</button>
-                                <button class="btn" onclick="openDaftarSoalModal()">Daftar Soal</button>
                             </div>
                         </div>
 
@@ -72,6 +70,7 @@
                                     <button class="btn btn-reveal" onclick="revealAnswer()">Buka Jawaban</button>
                                     <button class="btn btn-wrong" onclick="markAnswerWrong()">Jawaban Salah</button>
                                     <button class="btn btn-next" onclick="nextRound()">Ronde Selanjutnya</button>
+                                    <button class="btn" onclick="openCreateQuestionModal()">Tambah Soal</button>
                                 </div>
 
                                 <div id="gamePlayError" class="error-message" style="display: none; margin-top: 15px;"></div>
@@ -106,10 +105,10 @@
                         <button class="btn-back" onclick="closeCreateQuestionModal()">✕</button>
                     </div>
                     <div class="modal-body">
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label for="gameQuestionText">Soal:</label>
                             <input type="text" id="gameQuestionText" placeholder="Masukkan soal" maxlength="100" style="text-transform: uppercase;">
-                        </div>
+                        </div> -->
 
                         <div class="form-group">
                             <label for="gameQuestionAnswer">Jawaban:</label>
@@ -118,14 +117,14 @@
 
                         <div class="form-group">
                             <label for="gameHelpingLettersInput">Huruf Bantu (format: posisi,huruf) — posisi mulai dari 1</label>
-                            <input type="text" id="gameHelpingLettersInput" placeholder="Contoh: 1,A" maxlength="200" style="text-transform: uppercase;">
+                            <input type="text" id="gameHelpingLettersInput" placeholder="Contoh: 1,A atau 1,A;4,C jika huruf bantu lebih dari satu." maxlength="200" style="text-transform: uppercase;">
                             <small style="color: #999; margin-top: 5px; display: block;">Gunakan pemisah ';' atau '|' untuk beberapa huruf. Posisi dimulai dari 1.</small>
                         </div>
 
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label for="gameQuestionPoints">Poin Soal:</label>
                             <input type="number" id="gameQuestionPoints" value="100" min="1" max="1000">
-                        </div>
+                        </div> -->
 
                         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
                             <button class="btn" onclick="closeCreateQuestionModal()">Batal</button>
@@ -136,22 +135,7 @@
                     </div>
                 </div>
 
-                <!-- DAFTAR SOAL moved to modal (triggered by Daftar Soal buttons) -->
-                <div id="modalOverlayDaftar" class="modal-overlay" style="display:none;"></div>
-                <div id="daftarSoalModal" class="modal" style="display:none;">
-                    <div class="modal-header">
-                        <h2>Daftar Soal dalam Permainan</h2>
-                        <button class="btn-back" onclick="closeDaftarSoalModal()">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="gameQuestionsList" class="questions-list">
-                            <p class="empty-message">Belum ada soal</p>
-                        </div>
-                        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
-                            <button class="btn" onclick="closeDaftarSoalModal()">Tutup</button>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </div>
 

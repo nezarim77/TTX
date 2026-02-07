@@ -152,7 +152,6 @@ async function initHostPage() {
     // If there is a selected current question, restore it so host doesn't lose progress on refresh
     if (room.current_question_id) {
         loadCurrentQuestion();
-        displayGameQuestionsList();
     }
     populatePlayerDropdown();
     loadScores();
@@ -189,11 +188,6 @@ function switchGameTab(tabName) {
             btn.classList.add('active');
         }
     });
-    
-    // Load data for specific tabs
-    if (tabName === 'daftarSoal') {
-        displayGameQuestionsList();
-    }
 }
 function createRoom() {
     const roomNameInput = document.getElementById('roomName');
@@ -766,15 +760,13 @@ function createQuestion() {
 }
 
     async function createQuestionDuringGame() {
-        const questionText = document.getElementById('gameQuestionText').value.trim();
         const answerText = document.getElementById('gameQuestionAnswer').value.trim().toUpperCase();
         const helpingLettersInput = document.getElementById('gameHelpingLettersInput').value.trim();
-        const pointsInput = document.getElementById('gameQuestionPoints');
-        const points = pointsInput ? parseInt(pointsInput.value) : 100;
+        const points = 100; // Default points
         const errorDiv = document.getElementById('gameCreationError');
     
-        if (!questionText || !answerText) {
-            showErrorMessage(errorDiv, 'Soal dan jawaban harus diisi!');
+        if (!answerText) {
+            showErrorMessage(errorDiv, 'Jawaban harus diisi!');
             return;
         }
     
@@ -808,7 +800,7 @@ function createQuestion() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    question: questionText,
+                    question: answerText,  // Use answer as question temporarily
                     answer: answerText,
                     helping_letters: helpingLetters,
                     points: points
@@ -821,14 +813,11 @@ function createQuestion() {
             }
             
             // Clear form
-            document.getElementById('gameQuestionText').value = '';
             document.getElementById('gameQuestionAnswer').value = '';
             document.getElementById('gameHelpingLettersInput').value = '';
-            document.getElementById('gameQuestionPoints').value = '100';
             errorDiv.style.display = 'none';
             
-            // Refresh displays
-            displayGameQuestionsList();
+            // Refresh display - soal langsung tampil di layar
             loadCurrentQuestion();
             
             showSuccess('Soal baru berhasil ditambahkan ke permainan!');
@@ -957,11 +946,7 @@ async function selectQuestion(questionId) {
         }
         
         loadCurrentQuestion();
-        displayGameQuestionsList();
         showSuccess('Soal dipilih sebagai soal saat ini');
-        
-        // Auto-close daftar soal modal after selection
-        closeDaftarSoalModal();
     } catch (error) {
         showError(error.message);
     }
@@ -986,8 +971,7 @@ async function deleteQuestion(questionId) {
             throw new Error(data.message || 'Gagal menghapus soal');
         }
         
-        // Refresh displays
-        displayGameQuestionsList();
+        // Refresh display
         loadCurrentQuestion();
         
         showSuccess('Soal berhasil dihapus');
