@@ -550,16 +550,6 @@ function leaveRoom() {
     showSuccess('Anda telah keluar dari ruangan');
 }
 
-function leaveRoomAsHost() {
-    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    
-    if (currentHostRoom && confirm('Apakah Anda yakin ingin meninggalkan ruangan ini?')) {
-        deleteRoom(currentHostRoom);
-        localStorage.removeItem('ttx_currentHostRoom');
-        window.location.href = '/';
-    }
-}
-
 // ==================== UTILITY FUNCTIONS ==================== 
 function showError(message) {
     alert(message);
@@ -1609,21 +1599,30 @@ setInterval(function() {
                     const lastWrongTime = currentQ.wrong_flash_time;
                     const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
                     if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
+                        console.log('✓ Wrong-flash detected at', new Date().toLocaleTimeString());
                         showPesertaWrongFlash();
                         localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
                     }
                 }
             }
-        });
+        }).catch(err => console.error('Error in peserta wrong-flash polling:', err));
     }
 }, 300); // Check for wrong-answer flash every 300ms
 
 function showPesertaWrongFlash() {
     const answerGrid = document.getElementById('answerGrid');
-    if (!answerGrid) return;
+    if (!answerGrid) {
+        console.warn('answerGrid element not found');
+        return;
+    }
     
     const boxes = answerGrid.querySelectorAll('.answer-box');
-    if (boxes.length === 0) return; // No boxes to flash
+    if (boxes.length === 0) {
+        console.warn('No answer boxes found to flash');
+        return;
+    }
+    
+    console.log('✓ Showing wrong-answer flash on', boxes.length, 'boxes');
     
     // Add wrong-flash class
     boxes.forEach(box => {
@@ -1635,5 +1634,5 @@ function showPesertaWrongFlash() {
         boxes.forEach(box => {
             box.classList.remove('wrong-flash');
         });
-    }, 600);
+    }, 650);
 }
