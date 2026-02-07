@@ -1,15 +1,5 @@
 // ==================== NAVIGATION ==================== 
-// Store polling interval IDs so we can clear them when navigating
-let pollHostInterval = null;
-let pollPesertaInterval = null;
-let pollPesertaWrongFlashInterval = null;
-
 function goHome() {
-    // Clear all polling intervals before navigating
-    if (pollHostInterval) clearInterval(pollHostInterval);
-    if (pollPesertaInterval) clearInterval(pollPesertaInterval);
-    if (pollPesertaWrongFlashInterval) clearInterval(pollPesertaWrongFlashInterval);
-    
     window.location.href = '/';
 }
 
@@ -65,8 +55,7 @@ async function getRoom(roomCode) {
         const data = await response.json();
         return data.success ? data.data : null;
     } catch (error) {
-        // Silently return null on error - don't log verbose errors to avoid console spam
-        // Network errors or parsing errors are handled individually by the caller
+        console.error('Error getting room:', error);
         return null;
     }
 }
@@ -534,11 +523,6 @@ function leaveRoom() {
     localStorage.removeItem('ttx_playerName');
     localStorage.removeItem('ttx_playerRoomCode');
     
-    // Clear polling intervals
-    if (pollHostInterval) clearInterval(pollHostInterval);
-    if (pollPesertaInterval) clearInterval(pollPesertaInterval);
-    if (pollPesertaWrongFlashInterval) clearInterval(pollPesertaWrongFlashInterval);
-    
     // Hide game play section
     const gamePlaySection = document.getElementById('gamePlaySection');
     if (gamePlaySection) {
@@ -564,6 +548,16 @@ function leaveRoom() {
     }
     
     showSuccess('Anda telah keluar dari ruangan');
+}
+
+function leaveRoomAsHost() {
+    const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
+    
+    if (currentHostRoom && confirm('Apakah Anda yakin ingin meninggalkan ruangan ini?')) {
+        deleteRoom(currentHostRoom);
+        localStorage.removeItem('ttx_currentHostRoom');
+        window.location.href = '/';
+    }
 }
 
 // ==================== UTILITY FUNCTIONS ==================== 
@@ -1048,7 +1042,7 @@ function renderAnswerBoxes(question, mode) {
     grid.innerHTML = html;
 }
 
-function checkAnswer() {
+async function checkAnswer() {
     const guessText = document.getElementById('guessInput').value.trim().toUpperCase();
     const feedbackDiv = document.getElementById('answerFeedback');
     const resultDiv = document.getElementById('answerCheckResult');
@@ -1060,10 +1054,21 @@ function checkAnswer() {
     }
     
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = getRoom(currentHostRoom);
+    const room = await getRoom(currentHostRoom);
+    
+    if (!room || !room.questions) {
+        showErrorMessage(feedbackDiv, 'Tidak dapat memuat room');
+        resultDiv.style.display = 'block';
+        return;
+    }
+    
     const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
     
-    if (!currentQ) return;
+    if (!currentQ) {
+        showErrorMessage(feedbackDiv, 'Tidak ada pertanyaan yang aktif');
+        resultDiv.style.display = 'block';
+        return;
+    }
     
     const isCorrect = (guessText === currentQ.answer);
     
@@ -1082,12 +1087,27 @@ function checkAnswer() {
     resultDiv.style.display = 'block';
 }
 
-function revealAnswer() {
+async function revealAnswer() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = getRoom(currentHostRoom);
+    const room = await getRoom(currentHostRoom);
+    
+    // Add null checks
+    if (!room) {
+        showError('Room tidak ditemukan');
+        return;
+    }
+    
+    if (!room.questions || !Array.isArray(room.questions)) {
+        showError('Pertanyaan tidak tersedia');
+        return;
+    }
+    
     const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
     
-    if (!currentQ) return;
+    if (!currentQ) {
+        showError('Pertanyaan saat ini tidak ditemukan');
+        return;
+    }
     
     currentQ.status = 'revealed';
     currentQ.revealed_at = new Date().toISOString();
@@ -1334,9 +1354,14 @@ function populatePlayerDropdown() {
     });
 }
 
-function nextQuestion() {
+async function nextQuestion() {
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = getRoom(currentHostRoom);
+    const room = await getRoom(currentHostRoom);
+    
+    if (!room || !room.questions || !Array.isArray(room.questions)) {
+        showError('Tidak dapat memuat pertanyaan');
+        return;
+    }
     
     const currentIdx = room.questions.findIndex(q => q.question_id === room.current_question_id);
     
@@ -1447,7 +1472,7 @@ async function updateGameDisplay() {
     }
 }
 
-function submitPesertaAnswer() {
+async function submitPesertaAnswer() {
     const playerName = localStorage.getItem('ttx_playerName');
     const roomCode = localStorage.getItem('ttx_playerRoomCode');
     const answerInput = document.getElementById('playerAnswer').value.trim().toUpperCase();
@@ -1460,10 +1485,21 @@ function submitPesertaAnswer() {
         return;
     }
     
-    const room = getRoom(roomCode);
+    const room = await getRoom(roomCode);
+    
+    if (!room || !room.questions) {
+        showErrorMessage(resultText, 'Tidak dapat memuat room');
+        resultDiv.style.display = 'block';
+        return;
+    }
+    
     const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
     
-    if (!currentQ) return;
+    if (!currentQ) {
+        showErrorMessage(resultText, 'Tidak ada pertanyaan yang aktif');
+        resultDiv.style.display = 'block';
+        return;
+    }
     
     const isCorrect = (answerInput === currentQ.answer);
     
@@ -1529,21 +1565,10 @@ async function pollPesertaPage() {
     
     // If room has been deleted on host, inform peserta and clean up
     if (!room) {
-        // Clear polling first to prevent re-entering this logic
-        if (pollHostInterval) clearInterval(pollHostInterval);
-        if (pollPesertaInterval) clearInterval(pollPesertaInterval);
-        if (pollPesertaWrongFlashInterval) clearInterval(pollPesertaWrongFlashInterval);
-        
-        // Clear storage
+        alert('Ruangan telah dihapus oleh host. Anda akan kembali ke beranda.');
         localStorage.removeItem('ttx_playerName');
         localStorage.removeItem('ttx_playerRoomCode');
-        
-        // Show message and navigate
-        setTimeout(() => {
-            alert('Ruangan telah dihapus oleh host. Anda akan kembali ke beranda.');
-            goHome();
-        }, 100);
-        
+        goHome();
         return;
     }
 
@@ -1600,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Optional: Auto-refresh data periodically (for real-time updates)
-pollHostInterval = setInterval(function() {
+setInterval(function() {
     const pathname = window.location.pathname;
     
     if (pathname === '/host') {
@@ -1611,7 +1636,7 @@ pollHostInterval = setInterval(function() {
 }, 1000); // Refresh every 1 second for better real-time feel
 
 // Peserta gets additional faster polling for wrong-answer flash responsiveness
-pollPesertaWrongFlashInterval = setInterval(function() {
+setInterval(function() {
     const pathname = window.location.pathname;
     if (pathname === '/peserta') {
         const playerName = localStorage.getItem('ttx_playerName');
@@ -1626,30 +1651,21 @@ pollPesertaWrongFlashInterval = setInterval(function() {
                     const lastWrongTime = currentQ.wrong_flash_time;
                     const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
                     if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
-                        console.log('✓ Wrong-flash detected at', new Date().toLocaleTimeString());
                         showPesertaWrongFlash();
                         localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
                     }
                 }
             }
-        }).catch(err => console.error('Error in peserta wrong-flash polling:', err));
+        });
     }
 }, 300); // Check for wrong-answer flash every 300ms
 
 function showPesertaWrongFlash() {
     const answerGrid = document.getElementById('answerGrid');
-    if (!answerGrid) {
-        console.warn('answerGrid element not found');
-        return;
-    }
+    if (!answerGrid) return;
     
     const boxes = answerGrid.querySelectorAll('.answer-box');
-    if (boxes.length === 0) {
-        console.warn('No answer boxes found to flash');
-        return;
-    }
-    
-    console.log('✓ Showing wrong-answer flash on', boxes.length, 'boxes');
+    if (boxes.length === 0) return; // No boxes to flash
     
     // Add wrong-flash class
     boxes.forEach(box => {
@@ -1661,5 +1677,5 @@ function showPesertaWrongFlash() {
         boxes.forEach(box => {
             box.classList.remove('wrong-flash');
         });
-    }, 650);
+    }, 600);
 }
