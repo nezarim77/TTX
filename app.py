@@ -2,7 +2,7 @@ import sys
 print(f"[APP] Starting import at {sys.argv}", flush=True)
 
 from flask import Flask, jsonify, request, send_from_directory
-from flask_cors import CORS
+# from flask_cors import CORS  # TEMPORARILY DISABLED FOR TESTING
 import uuid
 import os
 from datetime import datetime
@@ -20,22 +20,27 @@ print(f"[APP] Flask app created", flush=True)
 
 # Enable CORS
 print(f"[APP] Initializing CORS...", flush=True)
-CORS(app)
-print(f"[APP] CORS initialized", flush=True)
+# CORS(app)  # TEMPORARILY DISABLED
+print(f"[APP] CORS skipped for testing", flush=True)
 
 # Test routes
+print(f"[APP] Defining test route...", flush=True)
 @app.route('/test')
 def test():
     """Ultra minimal test endpoint"""
     return "OK", 200
+print(f"[APP] Test route defined", flush=True)
 
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
 rooms: Dict[str, dict] = {}
 connections: Dict[str, List[str]] = {}  # room_code -> list of player names
 
+print(f"[APP] Database structures initialized", flush=True)
 
 # ==================== PAGE ROUTES ====================
+
+print(f"[APP] Defining page routes...", flush=True)
 
 @app.route('/')
 def index():
@@ -60,6 +65,8 @@ def serve_css():
 @app.route('/script.js')
 def serve_js():
     return send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
+
+print(f"[APP] Page routes defined", flush=True)
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -1218,6 +1225,7 @@ def handle_404(e):
 
 # ==================== MAIN ====================
 # Production: run with Gunicorn
+print(f"[APP] ✅ ALL ROUTES AND HANDLERS REGISTERED - APP READY!", flush=True)
 
 def run_local():
     """Run development server locally. Not used in production."""
