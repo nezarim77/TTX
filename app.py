@@ -2,28 +2,17 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import uuid
 import os
-import sys
 from datetime import datetime
 from typing import Dict, List, Optional
 
-try:
-    # Get the directory of the current file
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    
-    # Create Flask app
-    app = Flask(__name__)
-    
-    # Enable CORS
-    CORS(app)
-    
-    print(f"[APP-INIT] ✓ Flask app created successfully", flush=True)
-    print(f"[APP-INIT] BASE_DIR={BASE_DIR}", flush=True)
-    
-except Exception as e:
-    print(f"[APP-INIT] ✗ CRITICAL ERROR during app initialization: {e}", flush=True)
-    import traceback
-    traceback.print_exc()
-    raise
+# Get the directory of the current file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Create Flask app
+app = Flask(__name__)
+
+# Enable CORS
+CORS(app)
 
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
@@ -1203,29 +1192,17 @@ def internal_error(error):
 @app.errorhandler(Exception)
 def handle_exception(e):
     """Catch ALL exceptions and return error response"""
-    print(f"[ERROR-HANDLER] Exception caught: {type(e).__name__}: {e}", flush=True)
     return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 
 @app.errorhandler(404)
 def handle_404(e):
     """Handle 404 errors"""
-    print(f"[404-HANDLER] Route not found: {request.path}", flush=True)
     return jsonify({'error': 'Not found'}), 404
 
 
-@app.before_request
-def log_request():
-    """Log incoming requests"""
-    print(f"[REQUEST] {request.method} {request.path} from {request.remote_addr}", flush=True)
-    sys.stdout.flush()
-
-
 # ==================== MAIN ====================
-# Production: run with Gunicorn. Example start command in Railway:
-#   gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 1
-
-print("[APP-INIT] ✓ All routes registered successfully. App ready for Gunicorn.", flush=True)
+# Production: run with Gunicorn
 
 def run_local():
     """Run development server locally. Not used in production."""
