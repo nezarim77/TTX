@@ -116,7 +116,6 @@ def serve_js():
         logger.error(f"ERROR serving /script.js: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
-
 # ==================== WORKER INITIALIZATION ====================
 
 import threading
@@ -126,17 +125,6 @@ def log_worker_ready():
     """Log that worker is ready to handle requests"""
     logger.info("Worker initialized and ready to handle requests")
     _worker_ready.set()
-
-# Call on first request
-_first_request = [True]
-
-@app.before_request
-def check_first_request():
-    """Log first request to verify worker responsiveness"""
-    if _first_request[0]:
-        logger.info("FIRST REQUEST RECEIVED - Worker is responsive!")
-        _first_request[0] = False
-    logger.info(f"Incoming {request.method} {request.path} from {request.remote_addr}")
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -653,16 +641,8 @@ def get_stats():
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """
-    Health check endpoint
-    
-    Response:
-    {
-        "status": "ok"
-    }
-    """
-    logger.info("Health check called")
-    return jsonify({'status': 'ok'}), 200
+    """Minimal health check - no logging to avoid any overhead"""
+    return jsonify({'status': 'ok'})
 
 
 # ==================== GAME LOGIC ENDPOINTS ====================
