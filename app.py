@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 import sys
 import logging
 
-# Configure logging immediately
+# Configure logging immediately with unbuffered output
 logging.basicConfig(
     level=logging.DEBUG,
     format='[%(levelname)s] %(message)s',
@@ -15,6 +15,12 @@ logging.basicConfig(
     force=True
 )
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Ensure stderr is unbuffered
+sys.stderr = sys.__stderr__
+
+logger.info("=== APP MODULE STARTING ===")
 
 # Get the directory of the current file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,11 +28,21 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 logger.info(f"BASE_DIR: {BASE_DIR}")
 logger.info(f"Files in BASE_DIR: {os.listdir(BASE_DIR)}")
 
-app = Flask(__name__)
-logger.info("Flask app created")
+try:
+    app = Flask(__name__)
+    logger.info("Flask app created successfully")
+except Exception as e:
+    logger.error(f"FAILED to create Flask app: {e}", exc_info=True)
+    raise
 
-CORS(app)
-logger.info("CORS enabled")
+try:
+    CORS(app)
+    logger.info("CORS enabled successfully")
+except Exception as e:
+    logger.error(f"FAILED to enable CORS: {e}", exc_info=True)
+    raise
+
+logger.info("=== APP MODULE INITIALIZATION COMPLETE ===")
 
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
