@@ -1,3 +1,6 @@
+import sys
+print(f"[APP] Starting import at {sys.argv}", flush=True)
+
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import uuid
@@ -5,14 +8,20 @@ import os
 from datetime import datetime
 from typing import Dict, List, Optional
 
+print(f"[APP] Imports complete", flush=True)
+
 # Get the directory of the current file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Create Flask app
+print(f"[APP] Creating Flask app...", flush=True)
 app = Flask(__name__)
+print(f"[APP] Flask app created", flush=True)
 
 # Enable CORS
+print(f"[APP] Initializing CORS...", flush=True)
 CORS(app)
+print(f"[APP] CORS initialized", flush=True)
 
 # Test routes
 @app.route('/test')
