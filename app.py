@@ -5,18 +5,28 @@ import os
 from datetime import datetime
 from typing import Dict, List, Optional
 import sys
+import logging
+
+# Configure logging immediately
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[%(levelname)s] %(message)s',
+    stream=sys.stderr,
+    force=True
+)
+logger = logging.getLogger(__name__)
 
 # Get the directory of the current file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-print(f"[INIT] BASE_DIR: {BASE_DIR}", file=sys.stderr)
-print(f"[INIT] Files in BASE_DIR: {os.listdir(BASE_DIR)}", file=sys.stderr)
+logger.info(f"BASE_DIR: {BASE_DIR}")
+logger.info(f"Files in BASE_DIR: {os.listdir(BASE_DIR)}")
 
 app = Flask(__name__)
-print("[INIT] Flask app created", file=sys.stderr)
+logger.info("Flask app created")
 
 CORS(app)
-print("[INIT] CORS enabled", file=sys.stderr)
+logger.info("CORS enabled")
 
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
@@ -30,12 +40,12 @@ connections: Dict[str, List[str]] = {}  # room_code -> list of player names
 def index():
     """Serve index.html"""
     try:
-        print(f"[ROUTE /] Attempting to serve index.html from {BASE_DIR}", file=sys.stderr)
+        logger.debug(f"Attempting to serve index.html from {BASE_DIR}")
         result = send_from_directory(BASE_DIR, 'index.html')
-        print(f"[ROUTE /] Successfully served index.html", file=sys.stderr)
+        logger.debug("Successfully served index.html")
         return result
     except Exception as e:
-        print(f"[ROUTE /] ERROR: {str(e)}", file=sys.stderr)
+        logger.error(f"ERROR serving /: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -43,12 +53,12 @@ def index():
 def host_page():
     """Serve host.html"""
     try:
-        print(f"[ROUTE /host] Attempting to serve host.html from {BASE_DIR}", file=sys.stderr)
+        logger.debug(f"Attempting to serve host.html from {BASE_DIR}")
         result = send_from_directory(BASE_DIR, 'host.html')
-        print(f"[ROUTE /host] Successfully served host.html", file=sys.stderr)
+        logger.debug("Successfully served host.html")
         return result
     except Exception as e:
-        print(f"[ROUTE /host] ERROR: {str(e)}", file=sys.stderr)
+        logger.error(f"ERROR serving /host: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -56,12 +66,12 @@ def host_page():
 def peserta_page():
     """Serve peserta.html"""
     try:
-        print(f"[ROUTE /peserta] Attempting to serve peserta.html from {BASE_DIR}", file=sys.stderr)
+        logger.debug(f"Attempting to serve peserta.html from {BASE_DIR}")
         result = send_from_directory(BASE_DIR, 'peserta.html')
-        print(f"[ROUTE /peserta] Successfully served peserta.html", file=sys.stderr)
+        logger.debug("Successfully served peserta.html")
         return result
     except Exception as e:
-        print(f"[ROUTE /peserta] ERROR: {str(e)}", file=sys.stderr)
+        logger.error(f"ERROR serving /peserta: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -69,12 +79,12 @@ def peserta_page():
 def serve_css():
     """Serve styles.css"""
     try:
-        print(f"[ROUTE /styles.css] Attempting to serve styles.css from {BASE_DIR}", file=sys.stderr)
+        logger.debug(f"Attempting to serve styles.css from {BASE_DIR}")
         result = send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
-        print(f"[ROUTE /styles.css] Successfully served styles.css", file=sys.stderr)
+        logger.debug("Successfully served styles.css")
         return result
     except Exception as e:
-        print(f"[ROUTE /styles.css] ERROR: {str(e)}", file=sys.stderr)
+        logger.error(f"ERROR serving /styles.css: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -82,13 +92,21 @@ def serve_css():
 def serve_js():
     """Serve script.js"""
     try:
-        print(f"[ROUTE /script.js] Attempting to serve script.js from {BASE_DIR}", file=sys.stderr)
+        logger.debug(f"Attempting to serve script.js from {BASE_DIR}")
         result = send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
-        print(f"[ROUTE /script.js] Successfully served script.js", file=sys.stderr)
+        logger.debug("Successfully served script.js")
         return result
     except Exception as e:
-        print(f"[ROUTE /script.js] ERROR: {str(e)}", file=sys.stderr)
+        logger.error(f"ERROR serving /script.js: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+# ==================== REQUEST LOGGING ====================
+
+@app.before_request
+def log_request():
+    """Log all incoming requests"""
+    logger.info(f"Incoming {request.method} {request.path} from {request.remote_addr}")
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -613,7 +631,7 @@ def health_check():
         "status": "ok"
     }
     """
-    print("[ROUTE /api/health] Health check called", file=sys.stderr)
+    logger.info("Health check called")
     return jsonify({'status': 'ok'}), 200
 
 
@@ -1244,9 +1262,7 @@ def internal_error(error):
 @app.errorhandler(Exception)
 def handle_exception(e):
     """Catch ALL exceptions and log them before returning 500"""
-    print(f"[ERROR] Unhandled exception in Flask app: {type(e).__name__}: {str(e)}", file=sys.stderr)
-    import traceback
-    traceback.print_exc(file=sys.stderr)
+    logger.error(f"Unhandled exception in Flask app: {type(e).__name__}: {str(e)}", exc_info=True)
     return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 
@@ -1264,6 +1280,6 @@ def run_local():
 
 # ==================== MODULE INITIALIZATION VERIFICATION ====================
 
-print("[MODULE] app.py module loaded successfully", file=sys.stderr)
-print(f"[MODULE] Flask app object: {app}", file=sys.stderr)
-print(f"[MODULE] App routes registered: {[str(rule) for rule in app.url_map.iter_rules()]}", file=sys.stderr)
+logger.info("app.py module loaded successfully")
+logger.info(f"Flask app object: {app}")
+logger.info(f"App routes registered: {[str(rule) for rule in app.url_map.iter_rules()]}")
