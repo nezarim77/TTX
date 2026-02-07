@@ -1239,6 +1239,17 @@ def internal_error(error):
     }), 500
 
 
+# ==================== GLOBAL ERROR HANDLER ====================
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Catch ALL exceptions and log them before returning 500"""
+    print(f"[ERROR] Unhandled exception in Flask app: {type(e).__name__}: {str(e)}", file=sys.stderr)
+    import traceback
+    traceback.print_exc(file=sys.stderr)
+    return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
 # ==================== MAIN ====================
 
 # Production: run with Gunicorn. Example start command in Railway:
@@ -1249,3 +1260,10 @@ def run_local():
     """Run development server locally. Not used in production."""
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
+
+# ==================== MODULE INITIALIZATION VERIFICATION ====================
+
+print("[MODULE] app.py module loaded successfully", file=sys.stderr)
+print(f"[MODULE] Flask app object: {app}", file=sys.stderr)
+print(f"[MODULE] App routes registered: {[str(rule) for rule in app.url_map.iter_rules()]}", file=sys.stderr)
