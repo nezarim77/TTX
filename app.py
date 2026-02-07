@@ -101,11 +101,25 @@ def serve_js():
         return jsonify({'error': str(e)}), 500
 
 
-# ==================== REQUEST LOGGING ====================
+# ==================== WORKER INITIALIZATION ====================
+
+import threading
+_worker_ready = threading.Event()
+
+def log_worker_ready():
+    """Log that worker is ready to handle requests"""
+    logger.info("Worker initialized and ready to handle requests")
+    _worker_ready.set()
+
+# Call on first request
+_first_request = [True]
 
 @app.before_request
-def log_request():
-    """Log all incoming requests"""
+def check_first_request():
+    """Log first request to verify worker responsiveness"""
+    if _first_request[0]:
+        logger.info("FIRST REQUEST RECEIVED - Worker is responsive!")
+        _first_request[0] = False
     logger.info(f"Incoming {request.method} {request.path} from {request.remote_addr}")
 
 
