@@ -1109,17 +1109,24 @@ function markAnswerWrong() {
         }, 600);
     }
     
-    // Set flag on current question so peserta can see animation real-time
+    // Mark wrong timestamp in current question for peserta to see
     const currentHostRoom = localStorage.getItem('ttx_currentHostRoom');
-    const room = getRoom(currentHostRoom);
-    const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+    if (!currentHostRoom) return;
     
-    if (currentQ) {
-        currentQ.last_wrong_flash_time = new Date().getTime();
-        const allRooms = getAllRooms();
-        allRooms[currentHostRoom] = room;
-        saveRooms(allRooms);
-    }
+    // Get current room from backend
+    getRoom(currentHostRoom).then(room => {
+        if (!room || !room.current_question_id) return;
+        
+        const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+        if (currentQ) {
+            currentQ.wrong_flash_time = Date.now();
+            
+            // Try to update via API if available, otherwise use localStorage
+            const allRooms = getAllRooms();
+            allRooms[currentHostRoom] = room;
+            saveRooms(allRooms);
+        }
+    });
     
     const errorDiv = document.getElementById('gamePlayError');
     if (errorDiv) {
@@ -1495,12 +1502,14 @@ async function pollHostPage() {
     }
     updateParticipantsListInGame(room.participants);
     
+    // ALWAYS update scores (real-time sync)
+    loadScores();
+    
     // Refresh game display if on Bermain tab
     const activeTab = document.querySelector('.tab-btn.active');
     if (activeTab && activeTab.textContent.includes('Bermain')) {
         if (room.current_question_id !== undefined) {
             loadCurrentQuestion();
-            loadScores();
         }
     }
 }
@@ -1545,14 +1554,16 @@ async function pollPesertaPage() {
     // Load and update scoreboard in real-time
     loadScores();
 
-    // Trigger wrong-answer flash if flagged (once)
+    // Trigger wrong-answer flash if flagged (once) - CHECK REGULARLY
     if (room.current_question_id && room.questions) {
         const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
-        if (currentQ && currentQ.last_wrong_flash_time) {
-            const lastWrongTime = currentQ.last_wrong_flash_time;
+        if (currentQ && currentQ.wrong_flash_time) {
+            const lastWrongTime = currentQ.wrong_flash_time;
             const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
             if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
-                showPesertaWrongFlash();
+                setTimeout(() => {
+                    showPesertaWrongFlash();
+                }, 100); // Small delay to ensure UI is ready
                 localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
             }
         }
@@ -1582,17 +1593,47 @@ setInterval(function() {
     }
 }, 1000); // Refresh every 1 second for better real-time feel
 
+// Peserta gets additional faster polling for wrong-answer flash responsiveness
+setInterval(function() {
+    const pathname = window.location.pathname;
+    if (pathname === '/peserta') {
+        const playerName = localStorage.getItem('ttx_playerName');
+        const roomCode = localStorage.getItem('ttx_playerRoomCode');
+        if (!playerName || !roomCode) return;
+        
+        // Quick check for wrong flash flag (more responsive)
+        getRoom(roomCode).then(room => {
+            if (room && room.current_question_id && room.questions) {
+                const currentQ = room.questions.find(q => q.question_id === room.current_question_id);
+                if (currentQ && currentQ.wrong_flash_time) {
+                    const lastWrongTime = currentQ.wrong_flash_time;
+                    const lastProcessedTime = localStorage.getItem('ttx_lastWrongFlashTime_' + currentQ.question_id);
+                    if (!lastProcessedTime || parseInt(lastProcessedTime) < lastWrongTime) {
+                        showPesertaWrongFlash();
+                        localStorage.setItem('ttx_lastWrongFlashTime_' + currentQ.question_id, lastWrongTime.toString());
+                    }
+                }
+            }
+        });
+    }
+}, 300); // Check for wrong-answer flash every 300ms
+
 function showPesertaWrongFlash() {
     const answerGrid = document.getElementById('answerGrid');
-    if (answerGrid) {
-        const boxes = answerGrid.querySelectorAll('.answer-box');
+    if (!answerGrid) return;
+    
+    const boxes = answerGrid.querySelectorAll('.answer-box');
+    if (boxes.length === 0) return; // No boxes to flash
+    
+    // Add wrong-flash class
+    boxes.forEach(box => {
+        box.classList.add('wrong-flash');
+    });
+    
+    // Remove after animation completes
+    setTimeout(() => {
         boxes.forEach(box => {
-            box.classList.add('wrong-flash');
+            box.classList.remove('wrong-flash');
         });
-        setTimeout(() => {
-            boxes.forEach(box => {
-                box.classList.remove('wrong-flash');
-            });
-        }, 600);
-    }
+    }, 600);
 }
