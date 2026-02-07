@@ -12,8 +12,9 @@ function goToPeserta() {
 }
 
 // ==================== LOCAL STORAGE & API MANAGEMENT ==================== 
-// Backend API base URL
-const API_BASE = 'http://localhost:5000/api';
+// Backend API base URL - dynamically set based on current host
+// This allows same code to work on localhost, 192.168.x.x, or any domain
+const API_BASE = `http://${window.location.host}/api`;
 
 // ==================== API WRAPPER FUNCTIONS ====================
 
