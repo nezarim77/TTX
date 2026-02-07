@@ -5,15 +5,11 @@ Wrapper to run Gunicorn with proper PORT environment variable binding.
 import os
 import sys
 import subprocess
-import time
 
 if __name__ == '__main__':
-    # Debug: Check if app can be imported
+    #Debug: Check if app can be imported
     print("[STARTUP] Attempting to import app...", flush=True)
     try:
-        import app_wsgi as app_module
-        print("[STARTUP] ERROR: Tried to import app_wsgi instead of app", flush=True)
-        # Actually import app (the Flask version for now)
         import app
         print("[STARTUP] ✓ app.py imported successfully", flush=True)
     except Exception as e:
@@ -27,11 +23,11 @@ if __name__ == '__main__':
     port = os.environ.get('PORT', '8080')
     print(f"[STARTUP] PORT={port}", flush=True)
     
-    # Build gunicorn command 
+    # Build gunicorn command - bind to 0.0.0.0 for Railway
     cmd = [
         'gunicorn',
         'app:app',
-        '--bind', f'127.0.0.1:{port}',  # Try localhost instead of 0.0.0.0
+        '--bind', f'0.0.0.0:{port}',
         '--workers', '1',
         '--worker-class', 'sync',
         '--timeout', '120',
