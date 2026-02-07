@@ -1200,3 +1200,21 @@ def internal_error(error):
 # ==================== MAIN ====================
 # Production: run with Gunicorn via run.py
 # Development: use Flask test server locally only
+
+if __name__ == '__main__':
+    # Development server - only runs if script is executed directly
+    # NOT executed when imported by Gunicorn
+    print("\n" + "=" * 60)
+    print("TTX (Teka-Teki Extreme) - Backend Development Server")
+    print("=" * 60)
+    print("\nServer berjalan di: http://localhost:5000")
+    print("CORS enabled untuk komunikasi dengan frontend")
+    print("\nUntuk production: python run.py")
+    print("=" * 60 + "\n")
+    
+    app.run(
+        host='0.0.0.0',
+        port=5000,
+        debug=True,
+        use_reloader=True
+    )
