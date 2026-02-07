@@ -1580,7 +1580,7 @@ setInterval(function() {
     } else if (pathname === '/peserta') {
         pollPesertaPage();
     }
-}, 2000); // Refresh every 2 seconds
+}, 1000); // Refresh every 1 second for better real-time feel
 
 function showPesertaWrongFlash() {
     const answerGrid = document.getElementById('answerGrid');

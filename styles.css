@@ -778,6 +778,32 @@ body {
     animation: wrongFlash 0.6s ease !important;
 }
 
+/* ==================== SYNC INDICATOR ==================== */
+.sync-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 0.8em;
+    color: #ff0000;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sync-indicator.syncing {
+    opacity: 1;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
 /* ==================== GAME ELEMENTS ==================== */
 .questions-section {
     margin-bottom: 40px;
@@ -1248,6 +1274,7 @@ body {
     .page-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 12px;
     }
 
     .page-header h1 {
@@ -1279,6 +1306,35 @@ body {
     .waiting-info .info-item p {
         text-align: left;
         margin-top: 5px;
+    }
+
+    /* Tablet responsive tweaks */
+    .game-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .question-text-display h3 {
+        font-size: 1.2em;
+    }
+
+    .answer-box {
+        width: 42px;
+        height: 42px;
+    }
+
+    .score-item {
+        padding: 15px;
+    }
+
+    .btn {
+        padding: 14px 20px;
+        font-size: 0.95em;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 10px 12px;
     }
 }
 
@@ -1314,18 +1370,131 @@ body {
         padding: 15px;
     }
 
+    /* Responsive buttons & form elements */
+    .btn {
+        padding: 12px 20px;
+        font-size: 0.95em;
+    }
+
+    .form-group input,
+    .form-group select {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    /* Responsive scores board */
+    .score-item {
+        padding: 15px;
+        flex-wrap: wrap;
+    }
+
+    .score-rank {
+        font-size: 0.9em;
+        min-width: 30px;
+    }
+
+    .score-player-name {
+        font-size: 0.95em;
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .score-points {
+        font-size: 1.1em;
+        margin-left: auto;
+    }
+
+    /* Responsive answer boxes */
+    .answer-box {
+        width: 40px;
+        height: 40px;
+        font-size: 1em;
+        border-radius: 6px;
+    }
+
+    .answer-grid {
+        gap: 6px;
+    }
+
+    /* Responsive game info */
+    .game-info {
+        gap: 10px;
+        font-size: 0.9em;
+    }
+
+    .info-label {
+        font-size: 0.95em;
+    }
+
+    .info-label span {
+        font-size: 1.1em;
+    }
+
+    /* Responsive modal */
+    .modal {
+        width: 95%;
+        max-width: 95%;
+    }
+
+    .modal-header h2 {
+        font-size: 1em;
+    }
+
+    .modal-body {
+        max-height: calc(90vh - 60px);
+        overflow-y: auto;
+    }
+
+    /* Responsive question display */
+    #displayQuestion {
+        font-size: 1.2em;
+    }
+
+    .question-text-display h1 {
+        font-size: 1.3em;
+    }
+
+    /* Responsive page header */
+    .page-header {
+        gap: 8px;
+        padding: 12px 15px;
+    }
+
+    .page-header h1 {
+        font-size: 1.2em;
+    }
+
+    .btn-back {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+
+    .header-actions {
+        gap: 5px;
+        width: 100%;
+    }
+
+    .header-actions .btn {
+        flex: 1;
+        padding: 8px 10px;
+        font-size: 0.85em;
+    }
+
     /* Stack answer submission input + button on very small screens */
     .answer-submission {
         flex-direction: column;
+        gap: 10px;
     }
 
     .answer-submission input {
         width: 100%;
+        padding: 10px 12px;
     }
 
     .btn-submit-answer {
         width: 100%;
         box-sizing: border-box;
+        padding: 10px 15px;
+        font-size: 0.95em;
     }
 
     .room-info-box {
