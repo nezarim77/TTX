@@ -8,13 +8,16 @@ import subprocess
 import time
 
 if __name__ == '__main__':
-    # Debug: Check if app.py can be imported
-    print("[STARTUP] Attempting to import app.py...", flush=True)
+    # Debug: Check if app can be imported
+    print("[STARTUP] Attempting to import app...", flush=True)
     try:
+        import app_wsgi as app_module
+        print("[STARTUP] ERROR: Tried to import app_wsgi instead of app", flush=True)
+        # Actually import app (the Flask version for now)
         import app
         print("[STARTUP] ✓ app.py imported successfully", flush=True)
     except Exception as e:
-        print(f"[STARTUP] ✗ FAILED to import app.py: {e}", flush=True)
+        print(f"[STARTUP] ✗ FAILED to import app: {e}", flush=True)
         print(f"[STARTUP] Error type: {type(e).__name__}", flush=True)
         import traceback
         traceback.print_exc()
@@ -24,33 +27,18 @@ if __name__ == '__main__':
     port = os.environ.get('PORT', '8080')
     print(f"[STARTUP] PORT={port}", flush=True)
     
-    # Check if PORT is actually set by Railway
-    if 'PORT' in os.environ:
-        print(f"[STARTUP] ✓ PORT environment variable is set", flush=True)
-    else:
-        print(f"[STARTUP] ⚠ PORT not in environment, using default 8080", flush=True)
-    
-    # List all environment variables (for debugging Railway setup)
-    print("[STARTUP] Environment variables:", flush=True)
-    for key in sorted(os.environ.keys()):
-        if key.isupper() or key in ['PATH', 'PYTHONPATH']:
-            value = os.environ[key]
-            if len(value) > 100:
-                value = value[:100] + "..."
-            print(f"  {key}={value}", flush=True)
-    
-    # Build gunicorn command with verbose logging
+    # Build gunicorn command 
     cmd = [
         'gunicorn',
         'app:app',
-        '--bind', f'0.0.0.0:{port}',
+        '--bind', f'127.0.0.1:{port}',  # Try localhost instead of 0.0.0.0
         '--workers', '1',
         '--worker-class', 'sync',
         '--timeout', '120',
         '--keep-alive', '5',
         '--access-logfile', '-',
         '--error-logfile', '-',
-        '--log-level', 'info',  # Changed from debug to info for less noise
+        '--log-level', 'info',
     ]
     
     print(f"[STARTUP] Executing: {' '.join(cmd)}", flush=True)
