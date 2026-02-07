@@ -4,45 +4,15 @@ import uuid
 import os
 from datetime import datetime
 from typing import Dict, List, Optional
-import sys
-import logging
-
-# Configure logging immediately with unbuffered output
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='[%(levelname)s] %(message)s',
-    stream=sys.stderr,
-    force=True
-)
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# Ensure stderr is unbuffered
-sys.stderr = sys.__stderr__
-
-logger.info("=== APP MODULE STARTING ===")
 
 # Get the directory of the current file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-logger.info(f"BASE_DIR: {BASE_DIR}")
-logger.info(f"Files in BASE_DIR: {os.listdir(BASE_DIR)}")
+# Create Flask app
+app = Flask(__name__)
 
-try:
-    app = Flask(__name__)
-    logger.info("Flask app created successfully")
-except Exception as e:
-    logger.error(f"FAILED to create Flask app: {e}", exc_info=True)
-    raise
-
-try:
-    CORS(app)
-    logger.info("CORS enabled successfully")
-except Exception as e:
-    logger.error(f"FAILED to enable CORS: {e}", exc_info=True)
-    raise
-
-logger.info("=== APP MODULE INITIALIZATION COMPLETE ===")
+# Enable CORS
+CORS(app)
 
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
@@ -54,77 +24,27 @@ connections: Dict[str, List[str]] = {}  # room_code -> list of player names
 
 @app.route('/')
 def index():
-    """Serve index.html"""
-    try:
-        logger.debug(f"Attempting to serve index.html from {BASE_DIR}")
-        result = send_from_directory(BASE_DIR, 'index.html')
-        logger.debug("Successfully served index.html")
-        return result
-    except Exception as e:
-        logger.error(f"ERROR serving /: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    return send_from_directory(BASE_DIR, 'index.html')
 
 
 @app.route('/host')
 def host_page():
-    """Serve host.html"""
-    try:
-        logger.debug(f"Attempting to serve host.html from {BASE_DIR}")
-        result = send_from_directory(BASE_DIR, 'host.html')
-        logger.debug("Successfully served host.html")
-        return result
-    except Exception as e:
-        logger.error(f"ERROR serving /host: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    return send_from_directory(BASE_DIR, 'host.html')
 
 
 @app.route('/peserta')
 def peserta_page():
-    """Serve peserta.html"""
-    try:
-        logger.debug(f"Attempting to serve peserta.html from {BASE_DIR}")
-        result = send_from_directory(BASE_DIR, 'peserta.html')
-        logger.debug("Successfully served peserta.html")
-        return result
-    except Exception as e:
-        logger.error(f"ERROR serving /peserta: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    return send_from_directory(BASE_DIR, 'peserta.html')
 
 
 @app.route('/styles.css')
 def serve_css():
-    """Serve styles.css"""
-    try:
-        logger.debug(f"Attempting to serve styles.css from {BASE_DIR}")
-        result = send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
-        logger.debug("Successfully served styles.css")
-        return result
-    except Exception as e:
-        logger.error(f"ERROR serving /styles.css: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    return send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
 
 
 @app.route('/script.js')
 def serve_js():
-    """Serve script.js"""
-    try:
-        logger.debug(f"Attempting to serve script.js from {BASE_DIR}")
-        result = send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
-        logger.debug("Successfully served script.js")
-        return result
-    except Exception as e:
-        logger.error(f"ERROR serving /script.js: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
-
-# ==================== WORKER INITIALIZATION ====================
-
-import threading
-_worker_ready = threading.Event()
-
-def log_worker_ready():
-    """Log that worker is ready to handle requests"""
-    logger.info("Worker initialized and ready to handle requests")
-    _worker_ready.set()
+    return send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -1271,25 +1191,15 @@ def internal_error(error):
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    """Catch ALL exceptions and log them before returning 500"""
-    logger.error(f"Unhandled exception in Flask app: {type(e).__name__}: {str(e)}", exc_info=True)
+    """Catch ALL exceptions and return error response"""
     return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 
 # ==================== MAIN ====================
-
 # Production: run with Gunicorn. Example start command in Railway:
-#   gunicorn app:app --bind 0.0.0.0:$PORT --workers 2
-# For local development you can call `run_local()`.
+#   gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 1
 
 def run_local():
     """Run development server locally. Not used in production."""
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-
-
-# ==================== MODULE INITIALIZATION VERIFICATION ====================
-
-logger.info("app.py module loaded successfully")
-logger.info(f"Flask app object: {app}")
-logger.info(f"App routes registered: {[str(rule) for rule in app.url_map.iter_rules()]}")
