@@ -1198,35 +1198,11 @@ def internal_error(error):
 
 # ==================== MAIN ====================
 
-if __name__ == '__main__':
-    # Get port from environment variable (Railway sets PORT)
-    # Default to 5000 for local development
+# Production: run with Gunicorn. Example start command in Railway:
+#   gunicorn app:app --bind 0.0.0.0:$PORT --workers 2
+# For local development you can call `run_local()`.
+
+def run_local():
+    """Run development server locally. Not used in production."""
     port = int(os.environ.get('PORT', 5000))
-    is_production = os.environ.get('RAILWAY_ENVIRONMENT', '').lower() in ['production', 'staging']
-    
-    print("=" * 50)
-    print("TTX (Teka-Teki Extreme) - Backend Server")
-    print("=" * 50)
-    print(f"\nServer berjalan di: http://localhost:{port}")
-    print(f"Environment: {'PRODUCTION' if is_production else 'LOCAL DEVELOPMENT'}")
-    print("CORS enabled for frontend communication")
-    print("\nEndpoints tersedia:")
-    print("  - POST   /api/rooms")
-    print("  - GET    /api/rooms/<code>")
-    print("  - DELETE /api/rooms/<code>")
-    print("  - POST   /api/rooms/<code>/join")
-    print("  - POST   /api/rooms/<code>/leave")
-    print("  - GET    /api/rooms/<code>/participants")
-    print("  - GET    /api/rooms/<code>/status")
-    print("  - POST   /api/rooms/<code>/start")
-    print("  - POST   /api/rooms/<code>/finish")
-    print("  - GET    /api/stats")
-    print("  - GET    /api/health")
-    print("\n" + "=" * 50 + "\n")
-    
-    app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=not is_production,
-        use_reloader=not is_production
-    )
+    app.run(host='0.0.0.0', port=port, debug=True)
