@@ -22,31 +22,46 @@ connections: Dict[str, List[str]] = {}  # room_code -> list of player names
 @app.route('/')
 def index():
     """Serve index.html"""
-    return send_from_directory(BASE_DIR, 'index.html')
+    try:
+        return send_from_directory(BASE_DIR, 'index.html')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/host')
 def host_page():
     """Serve host.html"""
-    return send_from_directory(BASE_DIR, 'host.html')
+    try:
+        return send_from_directory(BASE_DIR, 'host.html')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/peserta')
 def peserta_page():
     """Serve peserta.html"""
-    return send_from_directory(BASE_DIR, 'peserta.html')
+    try:
+        return send_from_directory(BASE_DIR, 'peserta.html')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/styles.css')
 def serve_css():
     """Serve styles.css"""
-    return send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
+    try:
+        return send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/script.js')
 def serve_js():
     """Serve script.js"""
-    return send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
+    try:
+        return send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ==================== UTILITY FUNCTIONS ====================
