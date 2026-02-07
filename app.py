@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import uuid
 import os
+import sys
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -1217,6 +1218,7 @@ def handle_404(e):
 def log_request():
     """Log incoming requests"""
     print(f"[REQUEST] {request.method} {request.path} from {request.remote_addr}", flush=True)
+    sys.stdout.flush()
 
 
 # ==================== MAIN ====================

@@ -5,6 +5,7 @@ Wrapper to run Gunicorn with proper PORT environment variable binding.
 import os
 import sys
 import subprocess
+import time
 
 if __name__ == '__main__':
     # Debug: Check if app.py can be imported
@@ -29,6 +30,15 @@ if __name__ == '__main__':
     else:
         print(f"[STARTUP] ⚠ PORT not in environment, using default 8080", flush=True)
     
+    # List all environment variables (for debugging Railway setup)
+    print("[STARTUP] Environment variables:", flush=True)
+    for key in sorted(os.environ.keys()):
+        if key.isupper() or key in ['PATH', 'PYTHONPATH']:
+            value = os.environ[key]
+            if len(value) > 100:
+                value = value[:100] + "..."
+            print(f"  {key}={value}", flush=True)
+    
     # Build gunicorn command with verbose logging
     cmd = [
         'gunicorn',
@@ -40,7 +50,7 @@ if __name__ == '__main__':
         '--keep-alive', '5',
         '--access-logfile', '-',
         '--error-logfile', '-',
-        '--log-level', 'debug',
+        '--log-level', 'info',  # Changed from debug to info for less noise
     ]
     
     print(f"[STARTUP] Executing: {' '.join(cmd)}", flush=True)
