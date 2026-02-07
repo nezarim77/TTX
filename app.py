@@ -1199,10 +1199,16 @@ def internal_error(error):
 # ==================== MAIN ====================
 
 if __name__ == '__main__':
+    # Get port from environment variable (Railway sets PORT)
+    # Default to 5000 for local development
+    port = int(os.environ.get('PORT', 5000))
+    is_production = os.environ.get('RAILWAY_ENVIRONMENT', '').lower() in ['production', 'staging']
+    
     print("=" * 50)
     print("TTX (Teka-Teki Extreme) - Backend Server")
     print("=" * 50)
-    print("\nServer berjalan di: http://localhost:5000")
+    print(f"\nServer berjalan di: http://localhost:{port}")
+    print(f"Environment: {'PRODUCTION' if is_production else 'LOCAL DEVELOPMENT'}")
     print("CORS enabled for frontend communication")
     print("\nEndpoints tersedia:")
     print("  - POST   /api/rooms")
@@ -1220,7 +1226,7 @@ if __name__ == '__main__':
     
     app.run(
         host='0.0.0.0',
-        port=5000,
-        debug=True,
-        use_reloader=True
+        port=port,
+        debug=not is_production,
+        use_reloader=not is_production
     )
