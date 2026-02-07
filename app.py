@@ -4,12 +4,19 @@ import uuid
 import os
 from datetime import datetime
 from typing import Dict, List, Optional
+import sys
 
 # Get the directory of the current file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+print(f"[INIT] BASE_DIR: {BASE_DIR}", file=sys.stderr)
+print(f"[INIT] Files in BASE_DIR: {os.listdir(BASE_DIR)}", file=sys.stderr)
+
 app = Flask(__name__)
+print("[INIT] Flask app created", file=sys.stderr)
+
 CORS(app)
+print("[INIT] CORS enabled", file=sys.stderr)
 
 # ==================== IN-MEMORY DATABASE ====================
 # In production, use a proper database like PostgreSQL, MongoDB, etc.
@@ -23,8 +30,12 @@ connections: Dict[str, List[str]] = {}  # room_code -> list of player names
 def index():
     """Serve index.html"""
     try:
-        return send_from_directory(BASE_DIR, 'index.html')
+        print(f"[ROUTE /] Attempting to serve index.html from {BASE_DIR}", file=sys.stderr)
+        result = send_from_directory(BASE_DIR, 'index.html')
+        print(f"[ROUTE /] Successfully served index.html", file=sys.stderr)
+        return result
     except Exception as e:
+        print(f"[ROUTE /] ERROR: {str(e)}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
 
 
@@ -32,8 +43,12 @@ def index():
 def host_page():
     """Serve host.html"""
     try:
-        return send_from_directory(BASE_DIR, 'host.html')
+        print(f"[ROUTE /host] Attempting to serve host.html from {BASE_DIR}", file=sys.stderr)
+        result = send_from_directory(BASE_DIR, 'host.html')
+        print(f"[ROUTE /host] Successfully served host.html", file=sys.stderr)
+        return result
     except Exception as e:
+        print(f"[ROUTE /host] ERROR: {str(e)}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
 
 
@@ -41,8 +56,12 @@ def host_page():
 def peserta_page():
     """Serve peserta.html"""
     try:
-        return send_from_directory(BASE_DIR, 'peserta.html')
+        print(f"[ROUTE /peserta] Attempting to serve peserta.html from {BASE_DIR}", file=sys.stderr)
+        result = send_from_directory(BASE_DIR, 'peserta.html')
+        print(f"[ROUTE /peserta] Successfully served peserta.html", file=sys.stderr)
+        return result
     except Exception as e:
+        print(f"[ROUTE /peserta] ERROR: {str(e)}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
 
 
@@ -50,8 +69,12 @@ def peserta_page():
 def serve_css():
     """Serve styles.css"""
     try:
-        return send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
+        print(f"[ROUTE /styles.css] Attempting to serve styles.css from {BASE_DIR}", file=sys.stderr)
+        result = send_from_directory(BASE_DIR, 'styles.css', mimetype='text/css')
+        print(f"[ROUTE /styles.css] Successfully served styles.css", file=sys.stderr)
+        return result
     except Exception as e:
+        print(f"[ROUTE /styles.css] ERROR: {str(e)}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
 
 
@@ -59,8 +82,12 @@ def serve_css():
 def serve_js():
     """Serve script.js"""
     try:
-        return send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
+        print(f"[ROUTE /script.js] Attempting to serve script.js from {BASE_DIR}", file=sys.stderr)
+        result = send_from_directory(BASE_DIR, 'script.js', mimetype='application/javascript')
+        print(f"[ROUTE /script.js] Successfully served script.js", file=sys.stderr)
+        return result
     except Exception as e:
+        print(f"[ROUTE /script.js] ERROR: {str(e)}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
 
 
@@ -586,6 +613,7 @@ def health_check():
         "status": "ok"
     }
     """
+    print("[ROUTE /api/health] Health check called", file=sys.stderr)
     return jsonify({'status': 'ok'}), 200
 
 
